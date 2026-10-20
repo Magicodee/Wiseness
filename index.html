@@ -353,7 +353,7 @@ function compute(s, vals) {            // vals: key -> number|null|undefined
    الحالة العامة
    ===================================================================== */
 const S = {
-  cfg: null, subjects: [], classes: {}, assign: {}, status: {}, staff: {},
+  cfg: null, subjects: [], classes: {}, assign: {}, status: {}, staff: {}, locks: {},
   me: null, isOwner: false, isEditor: false, names: {}, loaded: {}, fatal: null, revoked: false
 };
 let db = null, userCap = null, dlCap = null;
@@ -380,7 +380,8 @@ function students(cid, includeArchived) {
 }
 const teacherOf = (cid, sid) => ((S.assign[cid] || {}).m || {})[sid] || null;
 const statusOf = (cid, sid) => (((S.status[cid] || {}).m || {})[sid]) || {};
-const isLocked = (cid, sid) => !!statusOf(cid, sid).l;
+const lockOf = (cid, sid) => S.locks[cid + '__' + sid] || {};
+const isLocked = (cid, sid) => !!lockOf(cid, sid).l || !!statusOf(cid, sid).l;
 const gradesPath = (cid, sid) => 'grades/' + cid + '__' + sid;
 
 function allAssignments() {
@@ -443,8 +444,9 @@ function setSaveState(kind, text) {
 function errText(e) {
   const c = e && e.code;
   if (c === 'invalid_argument') return 'ليس لديك صلاحية الكتابة هنا (راجع مستوى مشاركتك للصفحة).';
+  if (c === 'permission-denied') return 'ليس لديك صلاحية لهذا الإجراء (قواعد الأمان). لو الكشف معتمد ومقفول تواصل مع الكنترول.';
   if (c === 'quota_exceeded') return 'امتلأت سعة قاعدة البيانات. تواصل مع إدارة النظام.';
-  if (c === 'resource_exhausted') return 'ضغط كبير على النظام، حاول بعد لحظات.';
+  if (c === 'resource_exhausted' || c === 'resource-exhausted') return 'ضغط كبير على النظام، حاول بعد لحظات.';
   if (c === 'revoked') return 'تم سحب صلاحيتك على الصفحة.';
   return 'تعذّر الحفظ. تأكد من الاتصال بالإنترنت.';
 }
@@ -468,7 +470,7 @@ async function pump(path, q) {
       ok = true;
     } catch (e) {
       lastErr = e;
-      if (e && (e.code === 'unavailable' || e.code === 'resource_exhausted') && attempt === 0) await sleep(1200 + Math.random() * 1500);
+      if (e && (e.code === 'unavailable' || e.code === 'resource_exhausted' || e.code === 'resource-exhausted') && attempt === 0) await sleep(1200 + Math.random() * 1500);
       else break;
     }
   }
@@ -515,11 +517,11 @@ async function trashAndConfirm(msg, okText, type, label, ops) {
 }
 async function deleteSheet(cid, sid) {
   if (!isStaff()) return;
-  const ops = (await docOps([gradesPath(cid, sid)])).concat(statusMerge(cid, sid), assignMerge(cid, sid));
+  const ops = (await docOps([gradesPath(cid, sid), 'locks/' + cid + '__' + sid])).concat(statusMerge(cid, sid), assignMerge(cid, sid));
   const hasSt = statusMerge(cid, sid).length > 0, hasAs = assignMerge(cid, sid).length > 0;
   const label = 'كشف ' + subjectName(sid) + ' – ' + className(cid);
   if (!(await trashAndConfirm('حذف ' + label + ' وكل درجاته؟', 'حذف', 'كشف', label, ops))) return;
-  await del(gradesPath(cid, sid));
+  await del(gradesPath(cid, sid)); await del('locks/' + cid + '__' + sid);
   if (hasSt) await write('status/' + cid, { m: { [sid]: null } });
   if (hasAs) await write('assignments/' + cid, { m: { [sid]: null } });
   logAudit({ x: 'del', a: cid, s: sid, n: 'حذف كشف' });
@@ -549,7 +551,7 @@ async function deleteStudent(cid, stId) {
 async function deleteClass(cid) {
   if (!isStaff()) return;
   const c = S.classes[cid]; if (!c) return;
-  const paths = ['classes/' + cid, 'assignments/' + cid, 'status/' + cid].concat(S.subjects.map(sj => gradesPath(cid, sj.id)));
+  const paths = ['classes/' + cid, 'assignments/' + cid, 'status/' + cid].concat(S.subjects.map(sj => gradesPath(cid, sj.id)), S.subjects.map(sj => 'locks/' + cid + '__' + sj.id));
   const ops = await docOps(paths);
   if (!(await trashAndConfirm('حذف الفصل «' + c.name + '» بكل طلابه وكشوفه ودرجاته؟', 'حذف الفصل', 'فصل', 'فصل ' + c.name, ops))) return;
   for (const p of paths) await del(p);
@@ -564,11 +566,11 @@ async function deleteSubject(sid) {
     const p = gradesPath(cid, sid);
     const hasSt = statusMerge(cid, sid).length > 0, hasAs = assignMerge(cid, sid).length > 0;
     todo.push({ cid, p, hasSt, hasAs });
-    ops.push(...(await docOps([p])), ...statusMerge(cid, sid), ...assignMerge(cid, sid));
+    ops.push(...(await docOps([p, 'locks/' + cid + '__' + sid])), ...statusMerge(cid, sid), ...assignMerge(cid, sid));
   }
   if (!(await trashAndConfirm('حذف المادة «' + sj.name + '» من كل الفصول، بكشوفها ودرجاتها وتكليفات معلميها؟', 'حذف المادة', 'مادة', 'مادة ' + sj.name, ops))) return;
   for (const t of todo) {
-    await del(t.p);
+    await del(t.p); await del('locks/' + t.cid + '__' + sid);
     if (t.hasSt) await write('status/' + t.cid, { m: { [sid]: null } });
     if (t.hasAs) await write('assignments/' + t.cid, { m: { [sid]: null } });
   }
@@ -656,10 +658,11 @@ function subscribeAll() {
   db.doc('config/subjects').onSnapshot(s => { S.subjects = s.exists ? (s.data().list || []) : []; markLoaded('subjects'); }, subErr);
   db.collection('classes').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.classes = o; markLoaded('classes'); }, subErr);
   db.collection('assignments').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.assign = o; markLoaded('assign'); }, subErr);
+  db.collection('locks').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.locks = o; markLoaded('locks'); }, subErr);
   db.collection('status').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.status = o; markLoaded('status'); }, subErr);
   db.collection('staff').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.staff = o; markLoaded('staff'); }, subErr);
 }
-const ready = () => ['cfg', 'subjects', 'classes', 'assign', 'status', 'staff'].every(k => S.loaded[k]);
+const ready = () => ['cfg', 'subjects', 'classes', 'assign', 'status', 'locks', 'staff'].every(k => S.loaded[k]);
 
 /* =====================================================================
    التوجيه والعرض
@@ -699,6 +702,9 @@ function header() {
     const nm = S.me.name || nameOf(S.me.id) || 'مستخدم';
     const rl = { admin: 'إدارة النظام', control: 'الكنترول', teacher: 'معلم' }[role()] || 'غير مفعّل';
     chip.append(h('b', { text: nm }), h('span', { text: rl }));
+    if (S.fb) chip.append(h('div', { class: 'acts', style: 'justify-content:flex-end;margin-top:4px' },
+      h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
+      h('button', { class: 'btn small', type: 'button', text: 'خروج', onclick: fbLogout })));
   }
   const tabs = $('#tabs'); tabs.innerHTML = '';
   const items = [];
@@ -724,7 +730,7 @@ function renderAll() {
   if (S.revoked) v.append(h('div', { class: 'banner err', text: 'تم سحب صلاحيتك على هذه الصفحة. تواصل مع إدارة النظام.' }));
   if (S.local) v.append(h('div', { class: 'banner warn', text: 'وضع محلي: البيانات محفوظة على الجهاز والمتصفح ده بس ومش مشتركة مع معلمين تانيين. للعمل الجماعي استخدم رابط النظام على claude.ai. نزّل نسخة احتياطية من الإعدادات بشكل دوري.' }));
   if (!role()) { v.append(pageNoRole()); return; }
-  if ((role() === 'admin' || role() === 'control') && !S.isOwner && !S.isEditor)
+  if ((role() === 'admin' || role() === 'control') && !S.isOwner && !S.isEditor && !S.fb && !S.local)
     v.append(h('div', { class: 'banner warn', text: 'دورك في النظام (إدارة/كنترول) لكن مشاركتك للصفحة بمستوى Contributor، فلن تستطيع تعديل الفصول والإعدادات. اطلب من مالك الصفحة رفع صلاحيتك إلى Editor.' }));
   if (!S.cfg) { v.append(pageSetup()); return; }
   const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
@@ -1036,12 +1042,14 @@ function makeSheet(cid, sid, root) {
     let msg = 'بعد الاعتماد مش هتقدر تعدّل الدرجات، والكنترول بس هو اللي يفتح الكشف.';
     if (incomplete > 0) msg = 'فيه ' + incomplete + ' خانة لسه فاضية.\n' + msg;
     if (!(await confirmBox(msg + '\nتعتمد الكشف؟', 'اعتماد'))) return;
-    await write('status/' + cid, { m: { [sid]: { l: 1, lb: S.me.id, lt: Date.now(), f: filledCount() } } });
+    await write('status/' + cid, { m: { [sid]: { f: filledCount() } } });
+    await write('locks/' + cid + '__' + sid, { l: 1, lb: S.me.id, lt: Date.now() });
     logAudit({ a: cid, s: sid, x: 'lock' });
   }
   async function unlockSheet() {
     if (!(await confirmBox('فتح الكشف للتعديل؟ العملية بتتسجل في سجل التعديلات.', 'فتح'))) return;
-    await write('status/' + cid, { m: { [sid]: { l: 0 } } });
+    await write('locks/' + cid + '__' + sid, { l: 0, lb: S.me.id, lt: Date.now() });
+    if (statusOf(cid, sid).l) await write('status/' + cid, { m: { [sid]: { l: 0 } } });
     logAudit({ a: cid, s: sid, x: 'unlock' });
   }
 
@@ -1197,7 +1205,7 @@ const ROLES = { teacher: 'معلم', control: 'الكنترول', admin: 'إدا
 function pageStaff() {
   const wrap = h('div', {}, h('h1', { class: 'page', text: 'المستخدمون' }),
     h('p', { class: 'lead', text: 'حدّد مين من زمايلك يستخدم النظام وبأي دور.' }));
-  wrap.append(h('div', { class: 'banner warn' }, 'مهم: من قائمة «مشاركة» الخاصة بالصفحة، المعلمين يتشاركوا بمستوى Contributor، والكنترول وإدارة النظام بمستوى Editor عشان يقدروا يعدّلوا الفصول والإعدادات.'));
+  if (!S.fb) wrap.append(h('div', { class: 'banner warn' }, 'مهم: من قائمة «مشاركة» الخاصة بالصفحة، المعلمين يتشاركوا بمستوى Contributor، والكنترول وإدارة النظام بمستوى Editor عشان يقدروا يعدّلوا الفصول والإعدادات.'));
   const q = h('input', { type: 'text', placeholder: 'ابحث باسم الزميل لإضافته…', id: 'staffSearch', autocomplete: 'off' });
   const hits = h('ul', { class: 'hits', hidden: true });
   let tm = null;
@@ -1218,7 +1226,7 @@ function pageStaff() {
       });
     }, 250);
   });
-  wrap.append(h('div', { class: 'card' }, h('h2', { text: 'إضافة مستخدم' }), q, hits,
+  wrap.append(S.fb ? fbAddUserCard() : h('div', { class: 'card' }, h('h2', { text: 'إضافة مستخدم' }), q, hits,
     h('p', { class: 'note', text: 'البحث بيعرض زمايلك في نفس المؤسسة بس. لو الشخص مش ظاهر، ادعُه الأول من «مشاركة» الصفحة.' })));
   const ids = Object.keys(S.staff);
   const rows = [];
@@ -1621,10 +1629,171 @@ function localBackupCard() {
       } }))));
 }
 
+/* =====================================================================
+   وضع Firebase (للنشر على أي استضافة ملفات ثابتة): دخول حقيقي بإيميل وباسورد + قاعدة بيانات مشتركة.
+   املأ FIREBASE_CONFIG بإعدادات مشروعك (انظر README). لو سبتها فاضية بيشتغل الوضع المحلي.
+   ===================================================================== */
+const FIREBASE_CONFIG = { apiKey: 'AIzaSyBSlIMwIyvTf8GcMSmWfcQo0Uoc-lUFJtg', authDomain: 'wiseness-language-school.firebaseapp.com', projectId: 'wiseness-language-school', storageBucket: 'wiseness-language-school.firebasestorage.app', messagingSenderId: '411321061490', appId: '1:411321061490:web:c3cb17fa928e7cda0532eb' };
+const FB_VER = '10.12.2';
+let FB = null;
+const AUTH_ERRORS = {
+  'auth/invalid-credential': 'الإيميل أو كلمة المرور غير صحيحة.', 'auth/wrong-password': 'الإيميل أو كلمة المرور غير صحيحة.',
+  'auth/user-not-found': 'الإيميل أو كلمة المرور غير صحيحة.', 'auth/invalid-email': 'الإيميل غير صالح.',
+  'auth/too-many-requests': 'محاولات كتيرة، استنى شوية وحاول تاني.', 'auth/email-already-in-use': 'الإيميل ده مستخدم قبل كده.',
+  'auth/weak-password': 'كلمة المرور ضعيفة (8 حروف على الأقل).', 'auth/missing-password': 'اكتب كلمة المرور.',
+  'auth/operation-not-allowed': 'فعّل تسجيل الدخول بالإيميل وكلمة المرور من لوحة Firebase.',
+  'auth/network-request-failed': 'مفيش اتصال بالإنترنت.'
+};
+const authErr = e => AUTH_ERRORS[e && e.code] || 'حصل خطأ، حاول تاني.';
+
+function fbDb(fsM, fs) {
+  const snap = s => ({ id: s.id, exists: s.exists(), data: () => s.data(), metadata: s.metadata });
+  const qsnap = q => ({ docs: q.docs.map(snap), size: q.size, empty: q.empty, docChanges: () => [], metadata: q.metadata });
+  function docRef(path) {
+    const r = fsM.doc(fs, path);
+    return { id: r.id, path,
+      get: async () => snap(await fsM.getDoc(r)),
+      set: async d => { await fsM.setDoc(r, d); },
+      update: async d => { await fsM.setDoc(r, d, { merge: true }); },   // دمج عميق، وبينشئ الوثيقة لو مش موجودة
+      delete: async () => { await fsM.deleteDoc(r); },
+      onSnapshot: (next, err) => fsM.onSnapshot(r, s => next(snap(s)), err) };
+  }
+  function colRef(path, cons) {
+    cons = cons || [];
+    const q = () => fsM.query(fsM.collection(fs, path), ...cons);
+    return { path,
+      where: (f, op, v) => colRef(path, cons.concat([fsM.where(f, op, v)])), orderBy: () => colRef(path, cons), limit: n => colRef(path, cons.concat([fsM.limit(n)])),
+      get: async () => qsnap(await fsM.getDocs(q())),
+      onSnapshot: (next, err) => fsM.onSnapshot(q(), s => next(qsnap(s)), err),
+      doc: id => docRef(path + '/' + id), add: async d => { const r = docRef(path + '/a' + rid('')); await r.set(d); return r; } };
+  }
+  return { doc: docRef, collection: p => colRef(p) };
+}
+function blobDownloader() {
+  return { save: async ({ filename, data }) => {
+    const blob = data instanceof Blob ? data : new Blob([data]);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    return { status: 'saved' };
+  } };
+}
+function fbLogin() {
+  return new Promise(resolve => {
+    const { authM, auth } = FB;
+    const v = $('#view'); v.innerHTML = ''; $('#tabs').hidden = true; $('#meChip').innerHTML = '';
+    const email = h('input', { type: 'text', inputmode: 'email', autocomplete: 'username', id: 'loginEmail', dir: 'ltr', autocapitalize: 'none' });
+    const pw = h('input', { type: 'password', autocomplete: 'current-password', id: 'loginPw', dir: 'ltr' });
+    const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'اسمك' });
+    const msg = h('div', { class: 'banner err', hidden: true });
+    const fail = t => { msg.textContent = t; msg.hidden = false; };
+    const login = async e => {
+      if (e) e.preventDefault(); msg.hidden = true;
+      try { await authM.signInWithEmailAndPassword(auth, email.value.trim(), pw.value); resolve(); } catch (err) { fail(authErr(err)); }
+    };
+    const create = async () => {
+      msg.hidden = true;
+      if (pw.value.length < 8) { fail('كلمة المرور لازم تكون 8 حروف أو أرقام على الأقل.'); return; }
+      try { FB.pendingName = nm.value.trim(); await authM.createUserWithEmailAndPassword(auth, email.value.trim(), pw.value); resolve(); } catch (err) { fail(authErr(err)); }
+    };
+    const reset = async () => {
+      msg.hidden = true;
+      if (!email.value.trim()) { fail('اكتب الإيميل الأول.'); return; }
+      try { await authM.sendPasswordResetEmail(auth, email.value.trim()); toast('اتبعت رابط إعادة تعيين كلمة المرور على الإيميل.'); } catch (err) { fail(authErr(err)); }
+    };
+    v.append(h('div', { class: 'setup' }, h('h1', { text: 'تسجيل الدخول' }),
+      h('form', { class: 'card', onsubmit: login }, msg,
+        h('label', { class: 'f' }, 'الإيميل', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'كلمة المرور', pw),
+        h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'submit', text: 'دخول' }), h('button', { class: 'btn', type: 'button', text: 'نسيت كلمة المرور', onclick: reset }))),
+      h('details', { class: 'card' }, h('summary', { text: 'أول استخدام؟ إنشاء حساب الإدارة' }),
+        h('p', { class: 'note', text: 'اكتب الإيميل وكلمة المرور فوق، واسمك هنا، وبعدين اضغط إنشاء. أول حساب بيتسجل بيبقى مالك النظام. بقية المستخدمين بتضيفهم من تبويب «المستخدمون».' }),
+        h('label', { class: 'f' }, 'اسمك', nm),
+        h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn', type: 'button', text: 'إنشاء حساب الإدارة', onclick: create })))));
+    email.focus();
+  });
+}
+async function setupFirebase() {
+  const base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+  const [appM, authM, fsM] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+  const app = appM.initializeApp(FIREBASE_CONFIG);
+  const auth = authM.getAuth(app), fs = fsM.getFirestore(app);
+  FB = { appM, authM, fsM, app, auth, fs };
+  let u = await new Promise(res => { const un = authM.onAuthStateChanged(auth, x => { un(); res(x); }); });
+  if (!u) { await fbLogin(); u = auth.currentUser; }
+  const uid = u.uid, email = u.email || '';
+  const ownerRef = fsM.doc(fs, 'config/owner');
+  let owner = await fsM.getDoc(ownerRef);
+  if (!owner.exists()) {                                        // أول حساب يدخل بيبقى المالك
+    await fsM.setDoc(ownerRef, { uid, email, name: FB.pendingName || email.split('@')[0] });
+    owner = await fsM.getDoc(ownerRef);
+  }
+  const ownerData = owner.data();
+  const staffSnap = await fsM.getDoc(fsM.doc(fs, 'staff/' + uid));
+  const isOwner = ownerData.uid === uid;
+  const myName = (staffSnap.exists() && staffSnap.data().name) || (isOwner && ownerData.name) || email;
+  FB.email = email;
+  db = fbDb(fsM, fs);
+  userCap = {
+    isOwner: async () => isOwner, canEdit: async () => false, can: async () => true, id: async () => uid,
+    me: async () => ({ id: uid, name: myName, avatarUrl: 'data:,', color: '#0a6bfa', email, isMe: true, isOwner, canEdit: false, guest: false }),
+    profiles: async ids => {
+      const o = {};
+      for (const i of (Array.isArray(ids) ? ids : [ids])) {
+        let name = i === ownerData.uid ? ownerData.name : '';
+        if (!name) { try { const s = await fsM.getDoc(fsM.doc(fs, 'staff/' + i)); if (s.exists()) name = s.data().name || s.data().email || ''; } catch (e) { /* تجاهل */ } }
+        o[i] = { id: i, name: name || 'مستخدم', avatarUrl: 'data:,', color: '#0a6bfa', email: null, isMe: i === uid, guest: false };
+      }
+      return o;
+    },
+    search: async () => []
+  };
+  dlCap = blobDownloader();
+  S.fb = true;
+}
+async function fbCreateUser(name, email, password, roleName) {
+  const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'sec' + Date.now());       // تطبيق ثانوي عشان ما نخرجش المدير
+  try {
+    const sAuth = FB.authM.getAuth(sec);
+    const cred = await FB.authM.createUserWithEmailAndPassword(sAuth, email, password);
+    const uid = cred.user.uid;
+    await FB.authM.signOut(sAuth);
+    await write('staff/' + uid, { role: roleName, name, email });
+    logAudit({ x: 'staff', n: name + ' – ' + ROLES[roleName] });
+  } finally { try { await FB.appM.deleteApp(sec); } catch (e) { /* تجاهل */ } }
+}
+async function fbLogout() { try { await FB.authM.signOut(FB.auth); } catch (e) { /* تجاهل */ } location.reload(); }
+function fbAddUserCard() {
+  const name = h('input', { type: 'text', id: 'fbName' });
+  const email = h('input', { type: 'text', inputmode: 'email', dir: 'ltr', id: 'fbEmail', autocapitalize: 'none' });
+  const pw = h('input', { type: 'text', dir: 'ltr', id: 'fbPw', autocomplete: 'off', placeholder: '8 حروف أو أكتر' });
+  const roleSel = h('select', { id: 'fbRole' }, Object.entries(ROLES).map(([k, v]) => h('option', { value: k, text: v })));
+  const rEmail = h('input', { type: 'text', inputmode: 'email', dir: 'ltr', id: 'fbResetEmail', autocapitalize: 'none' });
+  return h('div', {},
+    h('div', { class: 'card' }, h('h2', { text: 'إضافة مستخدم' }),
+      h('div', { class: 'form-row' },
+        h('label', { class: 'f' }, 'الاسم', name), h('label', { class: 'f' }, 'الإيميل', email),
+        h('label', { class: 'f' }, 'كلمة مرور مبدئية', pw), h('label', { class: 'f' }, 'الدور', roleSel),
+        h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحساب', onclick: async () => {
+          const n = name.value.trim(), em = email.value.trim();
+          if (!n || !em) { toast('اكتب الاسم والإيميل.', true); return; }
+          if (pw.value.length < 8) { toast('كلمة المرور لازم تكون 8 على الأقل.', true); return; }
+          try { await fbCreateUser(n, em, pw.value, roleSel.value); toast('تم إنشاء الحساب. سلّم الإيميل وكلمة المرور للمستخدم.'); name.value = ''; email.value = ''; pw.value = ''; }
+          catch (e) { toast(e && e.code && e.code.startsWith('auth/') ? authErr(e) : errText(e), true); }
+        } }))),
+    h('div', { class: 'card' }, h('h2', { text: 'إعادة تعيين كلمة مرور' }),
+      h('p', { class: 'note', text: 'بيتبعت للمستخدم رابط على إيميله يختار منه كلمة مرور جديدة.' }),
+      h('div', { class: 'form-row' }, h('label', { class: 'f' }, 'إيميل المستخدم', rEmail),
+        h('button', { class: 'btn', type: 'button', text: 'إرسال الرابط', onclick: async () => {
+          if (!rEmail.value.trim()) { toast('اكتب الإيميل.', true); return; }
+          try { await FB.authM.sendPasswordResetEmail(FB.auth, rEmail.value.trim()); toast('تم إرسال الرابط.'); } catch (e) { toast(authErr(e), true); }
+        } }))));
+}
+
 async function init() {
   header();
   if (!window.claude || !window.claude.use) {
-    try { await setupLocal(); } catch (e) { S.fatal = 'تعذّر تشغيل النظام على المتصفح ده (التخزين المحلي غير متاح).'; renderAll(); return; }
+    const useFb = !!FIREBASE_CONFIG.apiKey;
+    try { if (useFb) await setupFirebase(); else await setupLocal(); }
+    catch (e) { S.fatal = useFb ? 'تعذّر الاتصال بـ Firebase. راجع الإعدادات والاتصال بالإنترنت.' : 'تعذّر تشغيل النظام على المتصفح ده (التخزين المحلي غير متاح).'; renderAll(); return; }
   } else {
     try {
       [db, userCap, dlCap] = await Promise.all([window.claude.use('db'), window.claude.use('user'), window.claude.use('downloads')]);
