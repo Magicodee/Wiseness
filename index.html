@@ -710,7 +710,7 @@ function header() {
   const items = [];
   if (role()) {
     items.push(['dashboard', isStaff() ? 'متابعة الكشوف' : 'كشوفي']);
-    if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
+if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['import', 'استيراد من ملف'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
     if (isAdmin()) items.push(['staff', 'المستخدمون'], ['settings', 'الإعدادات']);
   }
   tabs.hidden = !items.length;
@@ -733,8 +733,8 @@ function renderAll() {
   if ((role() === 'admin' || role() === 'control') && !S.isOwner && !S.isEditor && !S.fb && !S.local)
     v.append(h('div', { class: 'banner warn', text: 'دورك في النظام (إدارة/كنترول) لكن مشاركتك للصفحة بمستوى Contributor، فلن تستطيع تعديل الفصول والإعدادات. اطلب من مالك الصفحة رفع صلاحيتك إلى Editor.' }));
   if (!S.cfg) { v.append(pageSetup()); return; }
-  const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
-  const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
+const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
+const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
   if ((need === 'staff' && !isStaff()) || (need === 'admin' && !isAdmin())) { v.append(h('div', { class: 'banner err', text: 'ليس لديك صلاحية لهذه الصفحة.' })); return; }
   v.append((pages[route.name] || pageDashboard)());
 }
@@ -1367,6 +1367,171 @@ function pageAudit() {
     entries.sort((a, b) => b.t - a.t);
     draw();
   }, e => { out.innerHTML = ''; out.append(h('div', { class: 'banner err', text: errText(e) })); });
+  return wrap;
+}
+
+  /* =====================================================================
+   استيراد الفصول والطلاب والتكليفات من Excel / CSV
+   ===================================================================== */
+const COLS = {
+  cls: ['الفصل', 'فصل', 'class'],
+  stu: ['اسم الطالب', 'الطالب', 'الاسم', 'اسم', 'student', 'name'],
+  sub: ['المادة', 'مادة', 'subject'],
+  tch: ['المعلم', 'المدرس', 'المعلمة', 'إيميل المعلم', 'ايميل المعلم', 'الإيميل', 'الايميل', 'teacher', 'email']
+};
+const colIdx = (head, names) => head.findIndex(x => names.includes(x));
+function cellText(v) {
+  if (v == null) return '';
+  if (typeof v === 'object') {
+    if (v.richText) return v.richText.map(t => t.text).join('').trim();
+    if (v.text != null) return String(v.text).trim();
+    if (v.result != null) return String(v.result).trim();
+    return '';
+  }
+  return String(v).trim();
+}
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  text = text.replace(/^\uFEFF/, '');
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ',' || c === '\t') { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (c !== '\r') cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.map(r => r.map(x => x.trim()));
+}
+async function readSheets(f) {
+  const nm = f.name.toLowerCase();
+  if (nm.endsWith('.csv')) return [parseCSV(await f.text())];
+  if (nm.endsWith('.xlsx')) {
+    await loadExcelJS();
+    const wb = new window.ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer());
+    return wb.worksheets.map(ws => {
+      const rows = [];
+      ws.eachRow({ includeEmpty: false }, row => { rows.push(Array.from((row.values || []).slice(1), cellText)); });
+      return rows;
+    });
+  }
+  throw new Error('الملف لازم يكون Excel (.xlsx) أو CSV.');
+}
+function findTeacher(key) {
+  const k = key.trim().toLowerCase();
+  const ids = Object.keys(S.staff).filter(id => S.staff[id].role === 'teacher');
+  return ids.find(id => (S.staff[id].email || '').toLowerCase() === k)
+    || ids.find(id => ((S.staff[id].name || (S.names[id] || {}).name || '')).trim() === key.trim()) || null;
+}
+function buildImportPlan(sheets) {
+  const stu = [], asg = [], warnings = [];
+  sheets.forEach(rows => {
+    if (!rows.length) return;
+    const head = rows[0].map(x => String(x).trim().toLowerCase());
+    const ci = colIdx(head, COLS.cls), ui = colIdx(head, COLS.stu), si = colIdx(head, COLS.sub), ti = colIdx(head, COLS.tch);
+    if (ci < 0) return;
+    rows.slice(1).forEach(r => {
+      const c = (r[ci] || '').trim(); if (!c) return;
+      if (ui >= 0 && r[ui]) { const n = cleanName(r[ui]).slice(0, 120); if (n) stu.push({ cls: c, name: n }); }
+      if (si >= 0 && ti >= 0 && r[si] && r[ti]) asg.push({ cls: c, sub: r[si].trim(), tch: r[ti].trim() });
+    });
+  });
+  const classes = new Map();                       // اسم الفصل -> { id, name, isNew, add: [] }
+  const getClass = name => {
+    if (!classes.has(name)) {
+      const ex = classesSorted().find(c => c.name === name);
+      classes.set(name, { id: ex ? ex.id : rid('c'), name, isNew: !ex, add: [] });
+    }
+    return classes.get(name);
+  };
+  let dupes = 0;
+  stu.forEach(s => {
+    const c = getClass(s.cls);
+    const have = new Set(((S.classes[c.id] || {}).students || []).map(x => x.name));
+    if (have.has(s.name) || c.add.includes(s.name)) { dupes++; return; }
+    c.add.push(s.name);
+  });
+  const subjByName = new Map(S.subjects.map(s => [s.name, s.id]));
+  const newSubjects = [];
+  const asgOut = [], missing = new Set();
+  asg.forEach(a => {
+    const tid = findTeacher(a.tch);
+    if (!tid) { missing.add(a.tch); return; }
+    const c = getClass(a.cls);
+    if (!subjByName.has(a.sub)) { const id = rid('m'); subjByName.set(a.sub, id); newSubjects.push({ id, name: a.sub }); }
+    asgOut.push({ cid: c.id, cname: c.name, sid: subjByName.get(a.sub), sname: a.sub, tid });
+  });
+  if (missing.size) warnings.push('معلمين مش موجودين في «المستخدمون» (اتخطّى تكليفهم): ' + Array.from(missing).join('، '));
+  if (dupes) warnings.push('طلاب مكررين أو موجودين قبل كده (اتخطّوا): ' + dupes);
+  if (!stu.length && !asg.length) warnings.push('مالقيتش أعمدة مناسبة. لازم يكون فيه عمود «الفصل» مع «اسم الطالب» أو مع «المادة» و«المعلم».');
+  return { classes, newSubjects, asg: asgOut, warnings };
+}
+async function applyImportPlan(P) {
+  for (const c of P.classes.values()) {
+    if (!c.add.length && !c.isNew) continue;
+    const cur = (S.classes[c.id] || {}).students || [];
+    let seat = Math.max(0, ...cur.map(s => s.seat || 0));
+    const added = c.add.map(n => ({ id: rid('s'), name: n, seat: ++seat, on: 1 }));
+    await write('classes/' + c.id, { name: c.name, students: cur.concat(added) });
+  }
+  if (P.newSubjects.length) await write('config/subjects', { list: S.subjects.concat(P.newSubjects) });
+  const byClass = {};
+  P.asg.forEach(a => { (byClass[a.cid] = byClass[a.cid] || {})[a.sid] = a.tid; });
+  for (const cid of Object.keys(byClass)) await write('assignments/' + cid, { m: byClass[cid] });
+  logAudit({ x: 'roster', n: 'استيراد من ملف' });
+}
+async function downloadImportTemplate() {
+  try {
+    await loadExcelJS();
+    const wb = new window.ExcelJS.Workbook();
+    const w1 = wb.addWorksheet('الطلاب', { views: [{ rightToLeft: true }] });
+    w1.addRow(['الفصل', 'اسم الطالب']); w1.addRow(['SEC 2B', 'أحمد سامي']); w1.addRow(['SEC 2B', 'منى خالد']);
+    const w2 = wb.addWorksheet('التكليفات', { views: [{ rightToLeft: true }] });
+    w2.addRow(['الفصل', 'المادة', 'المعلم']); w2.addRow(['SEC 2B', 'الرياضيات', 'teacher@example.com']);
+    [w1, w2].forEach(w => { w.getRow(1).font = { bold: true }; w.columns.forEach(c => { c.width = 26; }); });
+    await saveFile('نموذج استيراد.xlsx', await wb.xlsx.writeBuffer());
+  } catch (e) { toast('تعذّر تجهيز النموذج.', true); }
+}
+function pageImport() {
+  const file = h('input', { type: 'file', accept: '.xlsx,.csv', multiple: true, id: 'importFile' });
+  const out = h('div');
+  let plan = null;
+  const wrap = h('div', {}, h('h1', { class: 'page', text: 'استيراد من ملف' }),
+    h('p', { class: 'lead', text: 'ارفع ملف Excel أو CSV (أو نزّل شيت جوجل بصيغة xlsx/csv) وهيتعمل الفصول والطلاب والمواد وتكليف المعلمين تلقائيًا.' }),
+    h('div', { class: 'card' },
+      h('p', { class: 'note', text: 'شيت «الطلاب»: الفصل | اسم الطالب.   شيت «التكليفات»: الفصل | المادة | المعلم (إيميل المعلم أو اسمه زي ما هو في المستخدمون). المعلمين لازم يكونوا مضافين الأول. ممكن كمان تحط كل الأعمدة في شيت واحد.' }),
+      h('div', { class: 'form-row' }, h('label', { class: 'f' }, 'ملف أو أكتر', file),
+        h('button', { class: 'btn primary', type: 'button', text: 'معاينة', onclick: async () => {
+          if (!file.files.length) { toast('اختر ملف الأول.', true); return; }
+          out.innerHTML = '';
+          try {
+            let sheets = [];
+            for (const f of file.files) sheets = sheets.concat(await readSheets(f));
+            plan = buildImportPlan(sheets); drawPreview();
+          } catch (e) { toast(e.message || 'تعذّرت قراءة الملف.', true); }
+        } }),
+        h('button', { class: 'btn', type: 'button', text: 'تنزيل نموذج', onclick: downloadImportTemplate }))), out);
+  function drawPreview() {
+    out.innerHTML = '';
+    const P = plan;
+    const newCls = Array.from(P.classes.values()).filter(c => c.isNew).length;
+    const addStu = Array.from(P.classes.values()).reduce((n, c) => n + c.add.length, 0);
+    out.append(h('div', { class: 'strip' },
+      h('div', {}, h('b', { text: newCls }), h('span', { text: 'فصول جديدة' })),
+      h('div', {}, h('b', { text: addStu }), h('span', { text: 'طلاب هيتضافوا' })),
+      h('div', {}, h('b', { text: P.newSubjects.length }), h('span', { text: 'مواد جديدة' })),
+      h('div', {}, h('b', { text: P.asg.length }), h('span', { text: 'تكليفات' }))));
+    P.warnings.forEach(w => out.append(h('div', { class: 'banner warn', text: w })));
+    if (P.asg.length) out.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, h('th', { text: 'الفصل' }), h('th', { text: 'المادة' }), h('th', { text: 'المعلم' }))),
+      h('tbody', {}, P.asg.slice(0, 100).map(a => h('tr', {}, h('td', { text: a.cname }), h('td', { text: a.sname }), h('td', { text: nameOf(a.tid) })))))));
+    if (addStu || newCls || P.newSubjects.length || P.asg.length) out.append(h('div', { class: 'acts', style: 'margin-top:14px' },
+      h('button', { class: 'btn primary', type: 'button', text: 'تنفيذ الاستيراد', onclick: async () => {
+        if (!(await confirmBox('تنفيذ الاستيراد؟ هيتضاف اللي في المعاينة ومفيش حاجة موجودة هتتمسح.', 'تنفيذ'))) return;
+        await applyImportPlan(plan); plan = null; file.value = ''; out.innerHTML = ''; toast('تم الاستيراد.');
+      } })));
+  }
   return wrap;
 }
 
