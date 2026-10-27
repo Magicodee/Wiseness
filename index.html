@@ -364,6 +364,7 @@ const OLD_PLACEHOLDER = 'مدرسة الأفق النموذجية للغات';
 const schoolName = () => (!S.cfg || !S.cfg.school || S.cfg.school === OLD_PLACEHOLDER) ? DEFAULT_SCHOOL : S.cfg.school;
 const scheme = () => (S.cfg && S.cfg.scheme) || DEFAULT_SCHEME;
 function role() {
+  if (S.parentMode) return 'parent';
   if (S.isOwner) return 'admin';
   const r = S.me && S.me.id && S.staff[S.me.id] && S.staff[S.me.id].role;
   if (r) return r;
@@ -522,6 +523,9 @@ async function deleteSheet(cid, sid) {
   const label = 'كشف ' + subjectName(sid) + ' – ' + className(cid);
   if (!(await trashAndConfirm('حذف ' + label + ' وكل درجاته؟', 'حذف', 'كشف', label, ops))) return;
   await del(gradesPath(cid, sid)); await del('locks/' + cid + '__' + sid);
+  await purgePg('cid', cid, x => x.sid === sid);
+
+  
   if (hasSt) await write('status/' + cid, { m: { [sid]: null } });
   if (hasAs) await write('assignments/' + cid, { m: { [sid]: null } });
   logAudit({ x: 'del', a: cid, s: sid, n: 'حذف كشف' });
@@ -544,6 +548,7 @@ async function deleteStudent(cid, stId) {
   const label = 'طالب ' + st.name + ' (' + className(cid) + ')';
   if (!(await trashAndConfirm('حذف ' + label + ' مع كل درجاته؟\nلو عايز تخفيه وتحتفظ بدرجاته استخدم «أرشفة».', 'حذف', 'طالب', label, ops))) return;
   await write('classes/' + cid, { students: (S.classes[cid].students || []).filter(x => x.id !== stId) });
+  await purgePg('st', stId);
   for (const p of gpaths) await write(p, { v: { [stId]: null }, m: { [stId]: null } });
   logAudit({ x: 'del', a: cid, n: 'حذف طالب: ' + st.name });
   toast('تم حذف الطالب.');
@@ -555,6 +560,7 @@ async function deleteClass(cid) {
   const ops = await docOps(paths);
   if (!(await trashAndConfirm('حذف الفصل «' + c.name + '» بكل طلابه وكشوفه ودرجاته؟', 'حذف الفصل', 'فصل', 'فصل ' + c.name, ops))) return;
   for (const p of paths) await del(p);
+  await purgePg('cid', cid);
   logAudit({ x: 'del', n: 'حذف فصل: ' + c.name });
   toast('تم حذف الفصل.');
 }
@@ -575,6 +581,7 @@ async function deleteSubject(sid) {
     if (t.hasAs) await write('assignments/' + t.cid, { m: { [sid]: null } });
   }
   await write('config/subjects', { list: S.subjects.filter(s => s.id !== sid) });
+  await purgePg('sid', sid);
   logAudit({ x: 'del', n: 'حذف مادة: ' + sj.name });
   toast('تم حذف المادة.');
 }
@@ -585,6 +592,7 @@ async function clearSheet(cid, sid) {
   const label = 'درجات ' + subjectName(sid) + ' – ' + className(cid);
   if (!(await trashAndConfirm('تفريغ كل درجات كشف ' + subjectName(sid) + ' – ' + className(cid) + '؟\nالكشف نفسه وتكليف المعلم هيفضلوا.', 'تفريغ', 'درجات', label, ops))) return;
   await del(gradesPath(cid, sid));
+  await purgePg('cid', cid, x => x.sid === sid);
   if (sid in ((S.status[cid] || {}).m || {})) await write('status/' + cid, { m: { [sid]: { f: 0 } } });
   logAudit({ x: 'del', a: cid, s: sid, n: 'تفريغ درجات الكشف' });
   toast('تم تفريغ الدرجات.');
@@ -662,7 +670,7 @@ function subscribeAll() {
   db.collection('status').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.status = o; markLoaded('status'); }, subErr);
   db.collection('staff').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.staff = o; markLoaded('staff'); }, subErr);
 }
-const ready = () => ['cfg', 'subjects', 'classes', 'assign', 'status', 'locks', 'staff'].every(k => S.loaded[k]);
+const ready = () => (S.parentMode ? ['cfg', 'subjects', 'pdoc'] : ['cfg', 'subjects', 'classes', 'assign', 'status', 'locks', 'staff']).every(k => S.loaded[k]);
 
 /* =====================================================================
    التوجيه والعرض
@@ -681,6 +689,7 @@ function go(name, params) {
 function refresh() {
   if (!ready() && !S.fatal) return;
   header();
+    if (route.name === 'import' || route.name === 'parents') return;
   if (sheetCtl) { sheetCtl.onState(); return; }
   const a = document.activeElement;
   if (a && $('#view').contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { pendingRefresh = true; return; }
@@ -700,17 +709,17 @@ function header() {
   const chip = $('#meChip'); chip.innerHTML = '';
   if (S.me) {
     const nm = S.me.name || nameOf(S.me.id) || 'مستخدم';
-    const rl = { admin: 'إدارة النظام', control: 'الكنترول', teacher: 'معلم' }[role()] || 'غير مفعّل';
+    const rl = { admin: 'إدارة النظام', control: 'الكنترول', teacher: 'معلم', parent: 'ولي أمر' }[role()] || 'غير مفعّل';
     chip.append(h('b', { text: nm }), h('span', { text: rl }));
     if (S.fb) chip.append(h('div', { class: 'acts', style: 'justify-content:flex-end;margin-top:4px' },
-      h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
+      h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: S.parentMode ? changeMyPassword : async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
       h('button', { class: 'btn small', type: 'button', text: 'خروج', onclick: fbLogout })));
   }
   const tabs = $('#tabs'); tabs.innerHTML = '';
   const items = [];
-  if (role()) {
+  if (role() && role() !== 'parent') {
     items.push(['dashboard', isStaff() ? 'متابعة الكشوف' : 'كشوفي']);
-if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['import', 'استيراد من ملف'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
+if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['import', 'استيراد من ملف'], ['parents', 'أولياء الأمور'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
     if (isAdmin()) items.push(['staff', 'المستخدمون'], ['settings', 'الإعدادات']);
   }
   tabs.hidden = !items.length;
@@ -726,15 +735,18 @@ function renderAll() {
   const v = $('#view'); v.innerHTML = '';
   if (S.fatal) { v.append(h('div', { class: 'banner err', text: S.fatal })); return; }
   if (!ready()) { v.append(h('div', { class: 'empty', text: 'جارٍ التحميل…' })); return; }
-  if (!S.me || !S.me.id) { v.append(h('div', { class: 'banner err', text: 'لا يمكن التعرف على حسابك. افتح الصفحة من claude.ai بحسابك المدعو.' })); return; }
+  if (!S.me || !S.me.id) {
+    v.append(h('div', { class: 'banner err', text: 'لا يمكن التعرف على حسابك. افتح الصفحة من claude.ai بحسابك المدعو.' })); return; }
+  if (S.parentMode) { v.append(pageParentHome()); return; }
   if (S.revoked) v.append(h('div', { class: 'banner err', text: 'تم سحب صلاحيتك على هذه الصفحة. تواصل مع إدارة النظام.' }));
   if (S.local) v.append(h('div', { class: 'banner warn', text: 'وضع محلي: البيانات محفوظة على الجهاز والمتصفح ده بس ومش مشتركة مع معلمين تانيين. للعمل الجماعي استخدم رابط النظام على claude.ai. نزّل نسخة احتياطية من الإعدادات بشكل دوري.' }));
   if (!role()) { v.append(pageNoRole()); return; }
   if ((role() === 'admin' || role() === 'control') && !S.isOwner && !S.isEditor && !S.fb && !S.local)
     v.append(h('div', { class: 'banner warn', text: 'دورك في النظام (إدارة/كنترول) لكن مشاركتك للصفحة بمستوى Contributor، فلن تستطيع تعديل الفصول والإعدادات. اطلب من مالك الصفحة رفع صلاحيتك إلى Editor.' }));
   if (!S.cfg) { v.append(pageSetup()); return; }
-const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
-const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
+  const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
+  const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', parents: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
+
   if ((need === 'staff' && !isStaff()) || (need === 'admin' && !isAdmin())) { v.append(h('div', { class: 'banner err', text: 'ليس لديك صلاحية لهذه الصفحة.' })); return; }
   v.append((pages[route.name] || pageDashboard)());
 }
@@ -996,6 +1008,7 @@ function makeSheet(cid, sid, root) {
     const old = typeof (serverV[id0] || {})[key] === 'number' ? serverV[id0][key] : null;
     if (old === nv) return;
     write(path, { v: { [id0]: { [key]: nv } }, m: { [id0]: [S.me.id, Date.now()] } });
+        write('pg/' + cid + '__' + id0 + '__' + sid, { k: cid + '__' + id0, cid, sid, st: id0, v: { [key]: nv }, t: Date.now() });
     serverV[id0] = Object.assign({}, serverV[id0] || {}, { [key]: nv });
     if ((old !== null) || isLocked(cid, sid)) logAudit({ a: cid, s: sid, st: id0, k: key, o: old, n: nv });
     clearTimeout(progTimer);
@@ -1538,6 +1551,358 @@ function pageImport() {
 /* =====================================================================
    التصدير: Excel (ExcelJS) مع CSV احتياطي
    ===================================================================== */
+/* =====================================================================
+   أولياء الأمور: حسابات بكود وكلمة مرور (أو إيميل) تشوف درجات الأبناء بس
+   ===================================================================== */
+const PDOM = 'parents.wiseness.school';
+const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';          // 32 حرف بدون O/I/0/1
+function randStr(n) { const b = new Uint8Array(n); crypto.getRandomValues(b); return Array.from(b, x => ALPHA[x & 31]).join(''); }
+const newParentCode = () => 'P' + randStr(5);
+const newParentPw = () => randStr(8);
+const loginId = s => { s = String(s).trim(); return s.includes('@') ? s : s.replace(/\s+/g, '').toLowerCase() + '@' + PDOM; };
+function normAr(s) {
+  return String(s || '').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+const PCOLS = {
+  cls: COLS.cls, stu: COLS.stu,
+  par: ['اسم ولي الأمر', 'ولي الأمر', 'اسم الولي', 'الولي', 'parent'],
+  mob: ['موبايل ولي الأمر', 'موبايل', 'الموبايل', 'رقم الموبايل', 'تليفون', 'هاتف', 'mobile', 'phone'],
+  em: ['إيميل ولي الأمر', 'ايميل ولي الأمر', 'إيميل', 'ايميل', 'الإيميل', 'الايميل', 'email']
+};
+async function purgePg(field, value, pred) {
+  try {
+    const q = await db.collection('pg').where(field, '==', value).get();
+    for (const d of q.docs) { if (!pred || pred(d.data())) await del('pg/' + d.id); }
+  } catch (e) { /* تجاهل */ }
+}
+async function writeVerified(path, data) {
+  await write(path, data);
+  try { return (await db.doc(path).get()).exists; } catch (e) { return false; }
+}
+async function createParentAuth(login, password) {          // بيرجع uid الحساب الجديد
+  const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'psec' + Date.now() + Math.random().toString(36).slice(2, 5));
+  try {
+    const sAuth = FB.authM.getAuth(sec);
+    const cred = await FB.authM.createUserWithEmailAndPassword(sAuth, login, password);
+    const uid = cred.user.uid;
+    await FB.authM.signOut(sAuth);
+    return uid;
+  } finally { try { await FB.appM.deleteApp(sec); } catch (e) { /* تجاهل */ } }
+}
+const kidsInfo = list => { const o = {}; list.forEach(k => { o[k.kid] = { n: k.sname, c: k.cname }; }); return o; };
+
+function buildParentPlan(sheets, existing) {
+  const idx = new Map(), warnings = [], groups = new Map();
+  Object.keys(S.classes).forEach(cid => (S.classes[cid].students || []).forEach(st => {
+    const k = normAr(S.classes[cid].name) + '|' + normAr(st.name);
+    if (!idx.has(k)) idx.set(k, []);
+    idx.get(k).push({ cid, st });
+  }));
+  const linked = new Set(), byEmail = new Map(), byMob = new Map(), seen = new Set();
+  existing.forEach(p => {
+    (p.kids || []).forEach(k => linked.add(k));
+    if (p.email) byEmail.set(String(p.email).toLowerCase(), p);
+    if (p.mob) byMob.set(p.mob, p);
+  });
+  let rowsN = 0, already = 0, dup = 0, badMail = 0, anon = 0;
+  const notFound = [], ambiguous = [];
+  sheets.forEach(rows => {
+    if (!rows.length) return;
+    const head = rows[0].map(x => String(x).trim().toLowerCase());
+    const ci = colIdx(head, PCOLS.cls), ui = colIdx(head, PCOLS.stu), pi = colIdx(head, PCOLS.par), mi = colIdx(head, PCOLS.mob), ei = colIdx(head, PCOLS.em);
+    if (ci < 0 || ui < 0) return;
+    rows.slice(1).forEach(r => {
+      const cn = (r[ci] || '').trim(), sn = cleanName(r[ui] || ''); if (!cn || !sn) return;
+      rowsN++;
+      const hit = idx.get(normAr(cn) + '|' + normAr(sn));
+      if (!hit) { notFound.push(cn + ' – ' + sn); return; }
+      if (hit.length > 1) { ambiguous.push(cn + ' – ' + sn); return; }
+      const kid = hit[0].cid + '__' + hit[0].st.id;
+      if (linked.has(kid)) { already++; return; }
+      if (seen.has(kid)) { dup++; return; }
+      seen.add(kid);
+      let email = ei >= 0 ? (r[ei] || '').trim().toLowerCase() : '';
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { badMail++; email = ''; }
+      let mob = mi >= 0 ? normalizeNum(r[mi] || '').replace(/\D/g, '') : '';
+      if (mob.length >= 10) mob = mob.slice(-10); else mob = '';
+      const pname = pi >= 0 ? cleanName(r[pi] || '').slice(0, 120) : '';
+      const key = email ? 'e:' + email : mob ? 'm:' + mob : 'r:' + (anon++);
+      if (!groups.has(key)) groups.set(key, { key, name: pname, email, mob, kids: [], existing: (email && byEmail.get(email)) || (mob && byMob.get(mob)) || null });
+      const g = groups.get(key);
+      if (!g.name && pname) g.name = pname;
+      g.kids.push({ kid, cid: hit[0].cid, stId: hit[0].st.id, sname: hit[0].st.name, cname: className(hit[0].cid) });
+    });
+  });
+  if (!rowsN) warnings.push('مالقيتش أعمدة «الفصل» و«اسم الطالب». راجع عناوين الأعمدة.');
+  if (notFound.length) warnings.push('طلاب مش لاقيهم في الفصول (اتخطّوا): ' + notFound.length + ' – مثال: ' + notFound.slice(0, 5).join('، '));
+  if (ambiguous.length) warnings.push('أسماء مكررة في نفس الفصل ومينفعش نحدد أنهي طالب (اتخطّوا): ' + ambiguous.slice(0, 5).join('، '));
+  if (already) warnings.push('طلاب عندهم حساب ولي أمر قبل كده (اتخطّوا): ' + already);
+  if (dup) warnings.push('طلاب مذكورين أكتر من مرة في الملف (اتاخد أول سطر): ' + dup);
+  if (badMail) warnings.push('إيميلات شكلها غلط اتتجاهلت وهيتعملها كود: ' + badMail);
+  if (anon) warnings.push('الأولياء من غير موبايل ولا إيميل: كل طالب هياخد حساب لوحده (الإخوات مش هيتجمّعوا).');
+  return { groups: Array.from(groups.values()), warnings };
+}
+
+async function runParentPlan(P, onProgress) {
+  const res = { cards: [], made: 0, added: 0, mailed: 0, failed: [], stopped: false };
+  let n = 0;
+  for (const g of P.groups) {
+    n++; onProgress(n, P.groups.length);
+    try {
+      if (g.existing) {
+        const kids = (g.existing.kids || []).concat(g.kids.map(k => k.kid));
+        if (!(await writeVerified('parents/' + g.existing.id, { kids, info: kidsInfo(g.kids) }))) throw new Error('تعذّر الحفظ');
+        res.added += g.kids.length; continue;
+      }
+      const real = !!g.email, pw = newParentPw();
+      let uid = null, login = real ? g.email : '';
+      for (let t = 0; t < 4 && !uid; t++) {
+        if (!real) login = newParentCode().toLowerCase() + '@' + PDOM;
+        try { uid = await createParentAuth(login, pw); }
+        catch (e) { if (e && e.code === 'auth/email-already-in-use' && !real) continue; throw e; }
+      }
+      if (!uid) throw new Error('تعذّر توليد كود');
+      const shown = real ? login : login.split('@')[0].toUpperCase();
+      const doc = { name: g.name || 'ولي أمر', kids: g.kids.map(k => k.kid), info: kidsInfo(g.kids), login: shown, t: Date.now() };
+      if (real) doc.email = login;
+      if (g.mob) doc.mob = g.mob;
+      if (!(await writeVerified('parents/' + uid, doc))) throw new Error('تعذّر الحفظ');
+      if (real) { try { await FB.authM.sendPasswordResetEmail(FB.auth, login); res.mailed++; } catch (e) { res.failed.push({ name: g.name || login, why: 'اتعمل الحساب لكن تعذّر إرسال الرابط' }); } }
+      else res.cards.push({ name: g.name || '', code: shown, pw, kids: g.kids });
+      res.made++;
+    } catch (e) {
+      const c = e && e.code;
+      res.failed.push({ name: g.name || (g.kids[0] && g.kids[0].sname) || '؟', why: c === 'auth/email-already-in-use' ? 'الإيميل مستخدم قبل كده' : (c && c.startsWith('auth/') ? authErr(e) : (e.message || 'خطأ')) });
+      if (c === 'auth/too-many-requests' || c === 'auth/quota-exceeded') { res.stopped = true; break; }
+    }
+    await sleep(350);
+  }
+  logAudit({ x: 'staff', n: 'استيراد أولياء أمور: ' + res.made + ' حساب جديد' });
+  return res;
+}
+async function downloadCards(cards) {
+  const head = ['اسم الطالب', 'ولي الأمر', 'الكود', 'كلمة المرور', 'الفصل'];
+  const rows = [];
+  cards.forEach(c => c.kids.forEach(k => rows.push([k.sname, c.name, c.code, c.pw, k.cname])));
+  try {
+    await loadExcelJS();
+    const wb = new window.ExcelJS.Workbook();
+    const ws = wb.addWorksheet('بطاقات الدخول', { views: [{ rightToLeft: true }] });
+    ws.addRow(head); rows.forEach(r => ws.addRow(r));
+    ws.getRow(1).font = { bold: true }; ws.columns.forEach(c => { c.width = 24; });
+    await saveFile('بطاقات دخول أولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
+  } catch (e) { await saveFile('بطاقات دخول أولياء الأمور.csv', csvOf([head].concat(rows))); }
+}
+async function reissueParent(p) {
+  if (!(await confirmBox('إصدار كود وكلمة مرور جديدين لـ «' + p.name + '»؟\nالدخول القديم هيتقفل فورًا.', 'إصدار'))) return;
+  const pw = newParentPw(); let uid = null, login = '';
+  try {
+    for (let t = 0; t < 4 && !uid; t++) {
+      login = newParentCode().toLowerCase() + '@' + PDOM;
+      try { uid = await createParentAuth(login, pw); } catch (e) { if (e && e.code === 'auth/email-already-in-use') continue; throw e; }
+    }
+    if (!uid) throw new Error('تعذّر توليد كود');
+    const code = login.split('@')[0].toUpperCase();
+    const doc = { name: p.name, kids: p.kids || [], info: p.info || {}, login: code, t: Date.now() };
+    if (p.mob) doc.mob = p.mob;
+    if (!(await writeVerified('parents/' + uid, doc))) throw new Error('تعذّر الحفظ، الدخول القديم لسه شغال.');
+    await del('parents/' + p.id);
+    logAudit({ x: 'staff', n: 'إعادة إصدار دخول: ' + p.name });
+    const kids = (p.kids || []).map(k => ({ sname: ((p.info || {})[k] || {}).n || '', cname: ((p.info || {})[k] || {}).c || '' }));
+    await downloadCards([{ name: p.name, code, pw, kids }]);
+    toast('تم الإصدار. نزّل الملف واحفظه، كلمة المرور مش هتظهر تاني.');
+  } catch (e) { toast((e && e.code && e.code.startsWith('auth/')) ? authErr(e) : (e.message || 'تعذّر الإصدار.'), true); }
+}
+async function syncParentData() {
+  if (!(await confirmBox('مزامنة درجات أولياء الأمور من الكشوف الحالية؟\nاعملها مرة بعد التفعيل، ولما ترجّع حاجة من السلة.', 'مزامنة'))) return;
+  toast('جارٍ المزامنة…');
+  let n = 0;
+  try {
+    for (const a of allAssignments()) {
+      const v = await fetchGrades(a.cid, a.sid);
+      for (const st of students(a.cid, true)) {
+        const vals = rowNums(v, st.id);
+        if (!Object.keys(vals).length) continue;
+        await db.doc('pg/' + a.cid + '__' + st.id + '__' + a.sid).set({ k: a.cid + '__' + st.id, cid: a.cid, sid: a.sid, st: st.id, v: vals, t: Date.now() });
+        n++;
+      }
+    }
+    const ps = await db.collection('parents').get();
+    for (const d of ps.docs) {
+      const info = {};
+      ((d.data().kids) || []).forEach(k => {
+        const parts = k.split('__');
+        const stu = ((S.classes[parts[0]] || {}).students || []).find(x => x.id === parts[1]);
+        if (stu) info[k] = { n: stu.name, c: className(parts[0]) };
+      });
+      if (Object.keys(info).length) await write('parents/' + d.id, { info });
+    }
+    toast('تمت المزامنة (' + n + ' سجل).');
+  } catch (e) { toast(errText(e), true); }
+}
+async function downloadParentTemplate() {
+  try {
+    await loadExcelJS();
+    const wb = new window.ExcelJS.Workbook();
+    const ws = wb.addWorksheet('أولياء الأمور', { views: [{ rightToLeft: true }] });
+    ws.addRow(['الفصل', 'اسم الطالب', 'اسم ولي الأمر', 'موبايل ولي الأمر', 'إيميل ولي الأمر (اختياري)']);
+    ws.addRow(['SEC 2B', 'أحمد سامي', 'سامي محمود', '01000000000', '']);
+    ws.addRow(['SEC 2B', 'منى خالد', 'خالد إبراهيم', '01111111111', 'parent@example.com']);
+    ws.getRow(1).font = { bold: true }; ws.columns.forEach(c => { c.width = 26; });
+    await saveFile('نموذج أولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
+  } catch (e) { toast('تعذّر تجهيز النموذج.', true); }
+}
+
+function pageParents() {
+  const wrap = h('div', {}, h('h1', { class: 'page', text: 'أولياء الأمور' }),
+    h('p', { class: 'lead', text: 'ارفع شيت فيه الفصل واسم الطالب واسم ولي الأمر، ولكل ولي أمر حساب يشوف درجات أبنائه بس.' }));
+  if (!S.fb) { wrap.append(h('div', { class: 'banner err', text: 'حسابات أولياء الأمور بتشتغل مع Firebase بس، مش الوضع المحلي.' })); return wrap; }
+  const file = h('input', { type: 'file', accept: '.xlsx,.csv', multiple: true, id: 'parentFile' });
+  const out = h('div'), list = h('div'), status = h('div', { class: 'status', role: 'status' });
+  let plan = null, busy = false;
+  wrap.append(h('div', { class: 'card' },
+    h('p', { class: 'note', text: 'الأعمدة: الفصل | اسم الطالب | اسم ولي الأمر | موبايل ولي الأمر | إيميل (اختياري). الطالب بيتلاقى بالفصل والاسم، فلازم يكون مضاف قبل كده. الأخوات بيتجمّعوا في حساب واحد لو الموبايل (أو الإيميل) متطابق. اللي معاه إيميل بيوصله رابط يحط منه كلمته بنفسه، واللي مالوش إيميل بياخد كود وكلمة مرور عشوائيين في ملف يتطبع.' }),
+    h('div', { class: 'form-row' }, h('label', { class: 'f' }, 'ملف أو أكتر', file),
+      h('button', { class: 'btn primary', type: 'button', text: 'معاينة', onclick: async () => {
+        if (!file.files.length) { toast('اختر ملف الأول.', true); return; }
+        out.innerHTML = '';
+        try {
+          let sheets = [];
+          for (const f of file.files) sheets = sheets.concat(await readSheets(f));
+          const ex = (await db.collection('parents').get()).docs.map(d => Object.assign({ id: d.id }, d.data()));
+          plan = buildParentPlan(sheets, ex); drawPlan();
+        } catch (e) { toast(e.message || 'تعذّرت قراءة الملف.', true); }
+      } }),
+      h('button', { class: 'btn', type: 'button', text: 'تنزيل نموذج', onclick: downloadParentTemplate }),
+      h('button', { class: 'btn', type: 'button', text: 'مزامنة درجات الأولياء', onclick: syncParentData }))),
+    status, out, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }), list);
+
+  function drawPlan() {
+    out.innerHTML = '';
+    const P = plan, fresh = P.groups.filter(g => !g.existing);
+    const kids = P.groups.reduce((n, g) => n + g.kids.length, 0);
+    out.append(h('div', { class: 'strip' },
+      h('div', {}, h('b', { text: fresh.length }), h('span', { text: 'حسابات جديدة' })),
+      h('div', {}, h('b', { text: fresh.filter(g => g.email).length }), h('span', { text: 'بإيميل' })),
+      h('div', {}, h('b', { text: fresh.filter(g => !g.email).length }), h('span', { text: 'بكود' })),
+      h('div', {}, h('b', { text: kids }), h('span', { text: 'طلاب هيتربطوا' }))));
+    P.warnings.forEach(w => out.append(h('div', { class: 'banner warn', text: w })));
+    if (!P.groups.length) return;
+    out.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, h('th', { text: 'ولي الأمر' }), h('th', { text: 'الأبناء' }), h('th', { text: 'الدخول' }))),
+      h('tbody', {}, P.groups.slice(0, 150).map(g => h('tr', {}, h('td', { text: g.name || '—' }), h('td', { text: g.kids.map(k => k.sname + ' (' + k.cname + ')').join('، ') }),
+        h('td', { text: g.existing ? 'يضاف لحساب موجود' : g.email ? 'إيميل: ' + g.email : 'كود وكلمة مرور' })))))));
+    out.append(h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحسابات', onclick: async e => {
+      if (busy) return;
+      if (!(await confirmBox('هيتعمل ' + fresh.length + ' حساب.\nالكود وكلمة المرور بيظهروا مرة واحدة بس في ملف بعد التنفيذ، ومش بيتخزنوا.', 'تنفيذ'))) return;
+      busy = true; e.target.disabled = true;
+      const res = await runParentPlan(plan, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
+      busy = false; plan = null; file.value = ''; status.textContent = ''; drawResult(res);
+    } })));
+  }
+  function drawResult(res) {
+    out.innerHTML = '';
+    out.append(h('div', { class: 'banner ok', text: 'تم: ' + res.made + ' حساب جديد' + (res.mailed ? ' (' + res.mailed + ' اتبعتلهم رابط على الإيميل)' : '') + (res.added ? '، وإضافة ' + res.added + ' طالب لحسابات موجودة' : '') + '.' }));
+    if (res.stopped) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء مؤقتًا بسبب كتر الطلبات. شغّل نفس الملف تاني بعد ساعة وهيكمل من حيث وقف.' }));
+    res.failed.forEach(f => out.append(h('div', { class: 'banner err', text: f.name + ': ' + f.why })));
+    if (res.cards.length) out.append(h('div', { class: 'banner warn', text: 'نزّل ملف بطاقات الدخول دلوقتي واحفظه. كلمات المرور مش هتظهر تاني، ولو ضاعت استخدم «إعادة إصدار الدخول».' }),
+      h('button', { class: 'btn primary', type: 'button', text: 'تنزيل بطاقات الدخول (' + res.cards.reduce((n, c) => n + c.kids.length, 0) + ')', onclick: () => downloadCards(res.cards) }));
+  }
+  auditUnsub = db.collection('parents').onSnapshot(snap => {
+    const items = snap.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+    list.innerHTML = '';
+    if (!items.length) { list.append(h('div', { class: 'empty', text: 'لسه مفيش حسابات أولياء أمور.' })); return; }
+    list.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, h('th', { text: 'ولي الأمر' }), h('th', { text: 'الدخول' }), h('th', { text: 'الأبناء' }), h('th'))),
+      h('tbody', {}, items.map(p => h('tr', {},
+        h('td', {}, h('strong', { text: p.name || '—' })),
+        h('td', { dir: 'ltr', style: 'text-align:right', text: p.email || p.login || '' }),
+        h('td', { text: (p.kids || []).map(k => { const i = (p.info || {})[k] || {}; return (i.n || 'طالب') + (i.c ? ' (' + i.c + ')' : ''); }).join('، ') }),
+        h('td', { class: 'row-actions' },
+          p.email ? h('button', { class: 'btn small', type: 'button', text: 'إرسال رابط كلمة المرور', onclick: async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, p.email); toast('تم إرسال الرابط.'); } catch (e) { toast(authErr(e), true); } } })
+                  : h('button', { class: 'btn small', type: 'button', text: 'إعادة إصدار الدخول', onclick: () => reissueParent(p) }),
+          h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: async () => {
+            if (!(await confirmBox('حذف حساب «' + p.name + '»؟ مش هيقدر يشوف أي درجات تاني.', 'حذف'))) return;
+            await del('parents/' + p.id); logAudit({ x: 'staff', n: 'حذف حساب ولي أمر: ' + p.name });
+          } }))))))));
+  }, e => { list.innerHTML = ''; list.append(h('div', { class: 'banner err', text: errText(e) })); });
+  return wrap;
+}
+
+/* ---------- جهة ولي الأمر ---------- */
+function parentErr(e) {
+  if (e && e.code === 'permission-denied') S.revoked = true;
+  else if (!S.fatal) S.fatal = 'تعذّر الاتصال بقاعدة البيانات. حدّث الصفحة.';
+  refresh();
+}
+function subscribeParent() {
+  const uid = S.me.id; let kidsKey = null, unsubs = [];
+  S.pg = S.pg || {};
+  db.doc('config/main').onSnapshot(s => { S.cfg = s.exists ? s.data() : null; markLoaded('cfg'); }, parentErr);
+  db.doc('config/subjects').onSnapshot(s => { S.subjects = s.exists ? (s.data().list || []) : []; markLoaded('subjects'); }, parentErr);
+  db.doc('parents/' + uid).onSnapshot(s => {
+    if (!s.exists) { S.parentDoc = null; S.revoked = true; markLoaded('pdoc'); return; }
+    S.parentDoc = s.data(); S.revoked = false;
+    const key = (S.parentDoc.kids || []).join('|');
+    if (key !== kidsKey) {
+      kidsKey = key; unsubs.forEach(u => u()); unsubs = [];
+      (S.parentDoc.kids || []).forEach(k => unsubs.push(db.collection('pg').where('k', '==', k).onSnapshot(q => { S.pg[k] = q.docs.map(d => d.data()); refresh(); }, parentErr)));
+    }
+    markLoaded('pdoc');
+  }, parentErr);
+}
+function changeMyPassword() {
+  const m = $('#modal'); m.innerHTML = '';
+  const pw = h('input', { type: 'password', autocomplete: 'new-password', dir: 'ltr', id: 'newPw' });
+  const close = () => { m.classList.remove('show'); m.innerHTML = ''; };
+  m.append(h('div', { class: 'dlg', role: 'dialog', 'aria-modal': 'true' },
+    h('label', { class: 'f' }, 'كلمة المرور الجديدة (8 أحرف على الأقل)', pw),
+    h('div', { class: 'dlg-actions', style: 'margin-top:14px' },
+      h('button', { class: 'btn primary', type: 'button', text: 'حفظ', onclick: async () => {
+        if (pw.value.length < 8) { toast('كلمة المرور لازم تكون 8 أحرف على الأقل.', true); return; }
+        try { await FB.authM.updatePassword(FB.auth.currentUser, pw.value); close(); toast('تم تغيير كلمة المرور.'); }
+        catch (e) { toast(e && e.code === 'auth/requires-recent-login' ? 'اخرج وادخل تاني وبعدين غيّر كلمة المرور.' : authErr(e), true); }
+      } }),
+      h('button', { class: 'btn', type: 'button', text: 'إلغاء', onclick: close }))));
+  m.classList.add('show'); pw.focus();
+}
+function pageParentHome() {
+  const wrap = h('div'), P = S.parentDoc;
+  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: 'درجات أبنائي' }),
+    h('p', { class: 'lead', text: S.cfg ? ((S.cfg.term || '') + (S.cfg.year ? ' – العام الدراسي ' + S.cfg.year : '')) : '' }));
+  hero.insertAdjacentHTML('beforeend', DOODLE); wrap.append(hero);
+  if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'حسابك مش مفعّل أو اتقفل. تواصل مع المدرسة.' })); return wrap; }
+  if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'النظام لم يُجهّز بعد.' })); return wrap; }
+  const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [];
+  if (!kids.length) { wrap.append(h('div', { class: 'empty', text: 'مفيش أبناء مربوطين بحسابك. تواصل مع المدرسة.' })); return wrap; }
+  kids.forEach(kid => {
+    const info = (P.info || {})[kid] || {};
+    const rows = ((S.pg || {})[kid] || []).filter(d => S.subjects.some(s => s.id === d.sid))
+      .sort((a, b) => subjectName(a.sid).localeCompare(subjectName(b.sid), 'ar'))
+      .map(d => { const vals = {}; Object.keys(d.v || {}).forEach(k => { if (typeof d.v[k] === 'number') vals[k] = d.v[k]; }); return { d, vals, c: compute(Sx, vals) }; });
+    const card = h('div', { class: 'card' }, h('h2', { text: (info.n || 'طالب') + (info.c ? ' – ' + info.c : '') }));
+    if (!rows.length) card.append(h('div', { class: 'empty', text: 'لسه مفيش درجات مرصودة.' }));
+    else {
+      card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+        h('thead', {}, h('tr', {}, h('th', { text: 'المادة' }),
+          Sx.months.map(m => h('th', { text: m.name + ' (من ' + monthMax(Sx) + ')' })), h('th', { text: 'المتوسط (من ' + avgMax(Sx) + ')' }),
+          Sx.exams.map(e => h('th', { text: e.name + ' (من ' + e.max + ')' })), h('th', { text: 'النهائي (من ' + finalMax(Sx) + ')' }))),
+        h('tbody', {}, rows.map(r => h('tr', {}, h('td', {}, h('strong', { text: subjectName(r.d.sid) })),
+          r.c.months.map(m => h('td', { text: fmt(m.total) })), h('td', { text: fmt(r.c.avg) }),
+          Sx.exams.map(e => h('td', { text: fmt(r.vals['x_' + e.key] === undefined ? null : r.vals['x_' + e.key]) })),
+          h('td', {}, h('strong', { text: fmt(r.c.final) }))))))));
+      rows.forEach(r => card.append(h('details', { style: 'margin-top:10px' }, h('summary', { text: 'تفاصيل ' + subjectName(r.d.sid) }),
+        h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' }, h('tbody', {}, fields.map(f => h('tr', {},
+          h('td', { text: f.label }), h('td', { text: (r.vals[f.key] === undefined ? '—' : fmt(r.vals[f.key])) + ' / ' + f.max })))))))));
+    }
+    wrap.append(card);
+  });
+  wrap.append(h('p', { class: 'note', text: 'الدرجات دي اللي رصدها المعلمون لحد دلوقتي، وبتتحدّث لحظيًا وممكن تتغيّر لحد ما المدرسة تعتمد الكشوف.' }));
+  return wrap;
+}
+
+  
 let exceljsP = null;
 function loadExcelJS() {
   if (window.ExcelJS) return Promise.resolve();
@@ -1853,7 +2218,16 @@ function fbLogin() {
     const fail = t => { msg.textContent = t; msg.hidden = false; };
     const login = async e => {
       if (e) e.preventDefault(); msg.hidden = true;
-      try { await authM.signInWithEmailAndPassword(auth, email.value.trim(), pw.value); resolve(); } catch (err) { fail(authErr(err)); }
+      const id = loginId(email.value);
+      try {
+        try { await authM.signInWithEmailAndPassword(auth, id, pw.value); }
+        catch (err) {
+          const up = pw.value.toUpperCase();
+          if (!email.value.includes('@') && up !== pw.value && err && (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password')) await authM.signInWithEmailAndPassword(auth, id, up);
+          else throw err;
+        }
+        resolve();
+      } catch (err) { fail(authErr(err)); }
     };
     const create = async () => {
       msg.hidden = true;
@@ -1862,12 +2236,12 @@ function fbLogin() {
     };
     const reset = async () => {
       msg.hidden = true;
-      if (!email.value.trim()) { fail('اكتب الإيميل الأول.'); return; }
+      if (!email.value.includes('@')) { fail('لو معاك كود من المدرسة: اطلب منها إعادة إصدار الكود.'); return; }
       try { await authM.sendPasswordResetEmail(auth, email.value.trim()); toast('اتبعت رابط إعادة تعيين كلمة المرور على الإيميل.'); } catch (err) { fail(authErr(err)); }
     };
     v.append(h('div', { class: 'setup' }, h('h1', { text: 'تسجيل الدخول' }),
       h('form', { class: 'card', onsubmit: login }, msg,
-        h('label', { class: 'f' }, 'الإيميل', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'كلمة المرور', pw),
+        h('label', { class: 'f' }, 'الإيميل أو الكود', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'كلمة المرور', pw),
         h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'submit', text: 'دخول' }), h('button', { class: 'btn', type: 'button', text: 'نسيت كلمة المرور', onclick: reset }))),
       h('details', { class: 'card' }, h('summary', { text: 'أول استخدام؟ إنشاء حساب الإدارة' }),
         h('p', { class: 'note', text: 'اكتب الإيميل وكلمة المرور فوق، واسمك هنا، وبعدين اضغط إنشاء. أول حساب بيتسجل بيبقى مالك النظام. بقية المستخدمين بتضيفهم من تبويب «المستخدمون».' }),
@@ -1885,6 +2259,17 @@ async function setupFirebase() {
   let u = await new Promise(res => { const un = authM.onAuthStateChanged(auth, x => { un(); res(x); }); });
   if (!u) { await fbLogin(); u = auth.currentUser; }
   const uid = u.uid, email = u.email || '';
+    let pdoc = null;
+  try { const ps = await fsM.getDoc(fsM.doc(fs, 'parents/' + uid)); if (ps.exists()) pdoc = ps.data(); } catch (e) { /* مش ولي أمر */ }
+  if (pdoc) {
+    FB.email = email; db = fbDb(fsM, fs); dlCap = blobDownloader(); S.fb = true; S.parentMode = true;
+    userCap = {
+      isOwner: async () => false, canEdit: async () => false, can: async () => false, id: async () => uid,
+      me: async () => ({ id: uid, name: pdoc.name || 'ولي أمر', avatarUrl: 'data:,', isMe: true, isOwner: false, canEdit: false, email }),
+      profiles: async () => ({}), search: async () => []
+    };
+    return;
+  }
   const ownerRef = fsM.doc(fs, 'config/owner');
   let owner = await fsM.getDoc(ownerRef);
   if (!owner.exists()) {                                        // أول حساب يدخل بيبقى المالك
@@ -1969,6 +2354,7 @@ async function init() {
     S.me = await userCap.me(); S.isOwner = !!S.me.isOwner; S.isEditor = !!S.me.canEdit;
     if (S.me.id) S.names[S.me.id] = { name: S.me.name || '', tried: !!S.me.name };
   } catch (e) { S.me = null; }
+    if (S.parentMode) { renderAll(); subscribeParent(); return; }
   renderAll();
   subscribeAll();
 }
