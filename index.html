@@ -691,6 +691,7 @@ const ready = () => (S.parentMode ? ['cfg', 'subjects', 'pdoc'] : ['cfg', 'subje
    ===================================================================== */
 let sheetCtl = null;          // كائن الكشف المفتوح حاليًا
 let auditUnsub = null;
+  let staffBusy = false, staffImportResult = null;
 let pendingRefresh = false;
 
 function go(name, params) {
@@ -703,7 +704,7 @@ function go(name, params) {
 function refresh() {
   if (!ready() && !S.fatal) return;
   header();
-    if (route.name === 'import' || route.name === 'parents') return;
+    if (route.name === 'import' || route.name === 'parents' || staffBusy) return;
   if (sheetCtl) { sheetCtl.onState(); return; }
   const a = document.activeElement;
   if (a && $('#view').contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { pendingRefresh = true; return; }
@@ -1255,6 +1256,7 @@ function pageStaff() {
   });
   wrap.append(S.fb ? fbAddUserCard() : h('div', { class: 'card' }, h('h2', { text: 'إضافة مستخدم' }), q, hits,
     h('p', { class: 'note', text: 'البحث بيعرض زمايلك في نفس المؤسسة بس. لو الشخص مش ظاهر، ادعُه الأول من «مشاركة» الصفحة.' })));
+    if (S.fb) wrap.append(staffImportCard());
   const ids = Object.keys(S.staff);
   const rows = [];
   rows.push(h('tr', {}, h('td', {}, h('strong', { text: 'مالك الصفحة' })), h('td', { text: ROLES.admin }), h('td', {})));
@@ -2384,6 +2386,85 @@ async function fbCreateUser(name, email, password, roleName) {
     logAudit({ x: 'staff', n: name + ' – ' + ROLES[roleName] });
   } finally { try { await FB.appM.deleteApp(sec); } catch (e) { /* تجاهل */ } }
 }
+const SCOLS = {
+  name: ['الاسم', 'اسم المعلم', 'name'],
+  em: ['الإيميل', 'الايميل', 'إيميل', 'ايميل', 'email'],
+  pw: ['كلمة المرور المبدئية', 'كلمة المرور', 'الباسورد', 'password'],
+  role: ['الدور', 'role']
+};
+const ROLE_MAP = { 'معلم': 'teacher', 'معلمة': 'teacher', 'teacher': 'teacher', 'الكنترول': 'control', 'كنترول': 'control', 'control': 'control', 'إدارة النظام': 'admin', 'ادارة النظام': 'admin', 'إدارة': 'admin', 'admin': 'admin' };
+function staffImportCard() {
+  const file = h('input', { type: 'file', accept: '.xlsx,.csv', id: 'staffFile' });
+  const out = h('div'), status = h('div', { class: 'status', role: 'status' });
+  let items = [];
+  function resultView(r) {
+    const box = h('div', {}, h('div', { class: 'banner ok', text: 'تم إنشاء ' + r.made + ' حساب.' }));
+    r.failed.forEach(f => box.append(h('div', { class: 'banner err', text: f })));
+    if (r.stopped) box.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء مؤقتًا بسبب كتر الطلبات. استنى شوية وارفع نفس الملف تاني، والموجودين هيتخطّوا.' }));
+    return box;
+  }
+  if (staffImportResult) out.append(resultView(staffImportResult));
+  async function preview() {
+    if (!file.files.length) { toast('اختر ملف الأول.', true); return; }
+    out.innerHTML = ''; staffImportResult = null;
+    let sheets = [];
+    try { for (const f of file.files) sheets = sheets.concat(await readSheets(f)); } catch (e) { toast(e.message || 'تعذّرت قراءة الملف.', true); return; }
+    const have = new Set(Object.values(S.staff).map(s => (s.email || '').toLowerCase()));
+    const seen = new Set(), skipped = [];
+    items = [];
+    sheets.forEach(rows => {
+      if (!rows.length) return;
+      const head = rows[0].map(x => String(x).trim().toLowerCase());
+      const ni = colIdx(head, SCOLS.name), ei = colIdx(head, SCOLS.em), pi = colIdx(head, SCOLS.pw), ri = colIdx(head, SCOLS.role);
+      if (ni < 0 || ei < 0 || pi < 0) return;
+      rows.slice(1).forEach((r, i) => {
+        const name = (r[ni] || '').trim(), em = (r[ei] || '').trim(), pw = (r[pi] || '').trim();
+        if (!name && !em) return;
+        const rl = ri >= 0 ? (r[ri] || '').trim() : 'معلم';
+        const role = ROLE_MAP[rl.toLowerCase()] || ROLE_MAP[rl];
+        const tag = (name || em || ('سطر ' + (i + 2)));
+        if (!name || !/^\S+@\S+\.\S+$/.test(em)) { skipped.push(tag + ': اسم أو إيميل غير صالح'); return; }
+        if (pw.length < 8) { skipped.push(tag + ': كلمة المرور أقل من 8'); return; }
+        if (!role) { skipped.push(tag + ': الدور «' + rl + '» غير معروف'); return; }
+        const k = em.toLowerCase();
+        if (have.has(k)) { skipped.push(tag + ': موجود في المستخدمون'); return; }
+        if (seen.has(k)) { skipped.push(tag + ': مكرر في الملف'); return; }
+        seen.add(k); items.push({ name, em, pw, role });
+      });
+    });
+    out.append(h('div', { class: 'strip' }, h('div', {}, h('b', { text: items.length }), h('span', { text: 'حسابات هتتعمل' })), h('div', {}, h('b', { text: skipped.length }), h('span', { text: 'اتخطّوا' }))));
+    if (skipped.length) out.append(h('div', { class: 'banner warn', text: 'اتخطّى: ' + skipped.slice(0, 8).join(' | ') + (skipped.length > 8 ? ' …' : '') }));
+    if (!items.length) { out.append(h('div', { class: 'empty', text: 'مفيش حسابات جديدة. تأكد إن الأعمدة: الاسم | الإيميل | كلمة المرور المبدئية | الدور.' })); return; }
+    out.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, h('th', { text: 'الاسم' }), h('th', { text: 'الإيميل' }), h('th', { text: 'الدور' }))),
+      h('tbody', {}, items.slice(0, 100).map(x => h('tr', {}, h('td', { text: x.name }), h('td', { dir: 'ltr', style: 'text-align:right', text: x.em }), h('td', { text: ROLES[x.role] })))))));
+    out.append(h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحسابات', onclick: run })));
+  }
+  async function run(e) {
+    if (staffBusy) return;
+    if (!(await confirmBox('هيتعمل ' + items.length + ' حساب. كلمات المرور هي اللي في الملف، سلّمها لأصحابها.', 'تنفيذ'))) return;
+    staffBusy = true; e.target.disabled = true;
+    const res = { made: 0, failed: [], stopped: false };
+    let n = 0;
+    for (const x of items) {
+      n++; status.textContent = 'جارٍ الإنشاء… ' + n + ' من ' + items.length;
+      try { await fbCreateUser(x.name, x.em, x.pw, x.role); res.made++; }
+      catch (err) {
+        const c = err && err.code;
+        res.failed.push(x.name + ': ' + (c === 'auth/email-already-in-use' ? 'الإيميل موجود في Authentication بس مش في المستخدمون' : (c && c.startsWith('auth/') ? authErr(err) : errText(err))));
+        if (c === 'auth/too-many-requests') { res.stopped = true; break; }
+      }
+      await sleep(400);
+    }
+    staffBusy = false; staffImportResult = res; items = []; status.textContent = ''; file.value = '';
+    out.innerHTML = ''; out.append(resultView(res));
+  }
+  return h('div', { class: 'card' }, h('h2', { text: 'استيراد معلمين من ملف' }),
+    h('p', { class: 'note', text: 'الأعمدة: الاسم | الإيميل | كلمة المرور المبدئية (8 على الأقل) | الدور (معلم / الكنترول / إدارة النظام). أي عمود تاني (زي الفصل) بيتجاهل. الإيميلات الموجودة بتتخطى.' }),
+    h('div', { class: 'form-row' }, h('label', { class: 'f' }, 'ملف Excel أو CSV', file), h('button', { class: 'btn primary', type: 'button', text: 'معاينة', onclick: preview })),
+    status, out);
+}
+  
 async function fbLogout() { try { await FB.authM.signOut(FB.auth); } catch (e) { /* تجاهل */ } location.reload(); }
 function fbAddUserCard() {
   const name = h('input', { type: 'text', id: 'fbName' });
