@@ -379,13 +379,15 @@ const schoolName = () => (!S.cfg || !S.cfg.school || S.cfg.school === OLD_PLACEH
 const scheme = () => (S.cfg && S.cfg.scheme) || DEFAULT_SCHEME;
 function role() {
   if (S.parentMode) return 'parent';
-  if (S.isOwner) return 'admin';
+  if (S.isOwner) return 'control';
   const r = S.me && S.me.id && S.staff[S.me.id] && S.staff[S.me.id].role;
   if (r) return r;
   return S.isEditor ? 'control' : null;
 }
-const isStaff = () => role() === 'admin' || role() === 'control';
-const isAdmin = () => role() === 'admin';
+// الأدوار: control = «إدارة النظام-كنترول» (كل الصلاحيات)، admin = «مراقبة النظام» (عرض فقط)، teacher = معلم
+const isStaff = () => role() === 'control';
+const isAdmin = () => role() === 'control';
+const isViewer = () => role() === 'admin';
 const classesSorted = () => Object.entries(S.classes).map(([id, c]) => ({ id, ...c })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
 const subjectName = id => (S.subjects.find(s => s.id === id) || {}).name || '؟';
 const className = id => (S.classes[id] || {}).name || '؟';
@@ -412,7 +414,7 @@ function canEditSheet(cid, sid) {
   if (isStaff()) return true;
   return role() === 'teacher' && teacherOf(cid, sid) === (S.me && S.me.id) && !isLocked(cid, sid);
 }
-function canSeeSheet(cid, sid) { return isStaff() || teacherOf(cid, sid) === (S.me && S.me.id); }
+function canSeeSheet(cid, sid) { return isStaff() || isViewer() || teacherOf(cid, sid) === (S.me && S.me.id); }
 
 /* ---------- أسماء الأشخاص (تُحلّ وقت العرض ولا تُخزَّن) ---------- */
 let namesTimer = null;
@@ -724,7 +726,7 @@ function header() {
   const chip = $('#meChip'); chip.innerHTML = '';
   if (S.me) {
     const nm = S.me.name || nameOf(S.me.id) || 'مستخدم';
-    const rl = { admin: 'إدارة النظام', control: 'الكنترول', teacher: 'معلم', parent: (S.parentDoc && S.parentDoc.type === 's') ? 'طالب' : 'ولي أمر' }[role()] || 'غير مفعّل';
+    const rl = { admin: 'مراقبة النظام', control: 'إدارة النظام-كنترول', teacher: 'معلم', parent: (S.parentDoc && S.parentDoc.type === 's') ? 'طالب' : 'ولي أمر' }[role()] || 'غير مفعّل';
     chip.append(h('b', { text: nm }), h('span', { text: rl }));
     if (S.fb) chip.append(h('div', { class: 'acts', style: 'justify-content:flex-end;margin-top:4px' },
       S.parentMode ? null : h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: S.parentMode ? changeMyPassword : async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
@@ -733,7 +735,8 @@ function header() {
   const tabs = $('#tabs'); tabs.innerHTML = '';
   const items = [];
   if (role() && role() !== 'parent') {
-    items.push(['dashboard', isStaff() ? 'متابعة الكشوف' : 'كشوفي']);
+    items.push(['dashboard', (isStaff() || isViewer()) ? 'متابعة الكشوف' : 'كشوفي']);
+    if (isViewer()) items.push(['audit', 'سجل التعديلات']);
 if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['import', 'استيراد من ملف'], ['parents', 'أولياء الأمور'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
     if (isAdmin()) items.push(['staff', 'المستخدمون'], ['settings', 'الإعدادات']);
   }
@@ -762,7 +765,7 @@ function renderAll() {
   const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
   const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', parents: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
 
-  if ((need === 'staff' && !isStaff()) || (need === 'admin' && !isAdmin())) { v.append(h('div', { class: 'banner err', text: 'ليس لديك صلاحية لهذه الصفحة.' })); return; }
+  if ((need === 'staff' && !isStaff() && !(route.name === 'audit' && isViewer())) || (need === 'admin' && !isAdmin())) { v.append(h('div', { class: 'banner err', text: 'ليس لديك صلاحية لهذه الصفحة.' })); return; }
   v.append((pages[route.name] || pageDashboard)());
 }
 
@@ -810,7 +813,7 @@ function tile(color, icon, num, label) {
 }
 function pageDashboard() {
   const wrap = h('div');
-  const staff = isStaff();
+  const staff = isStaff() || isViewer(), writer = isStaff();
   let list = allAssignments();
   if (!staff) list = list.filter(a => a.teacher === S.me.id);
   const filterId = route.cls || '';
@@ -843,7 +846,7 @@ function pageDashboard() {
       h('td', { class: 'row-actions c-actions' },
         h('button', { class: 'btn small primary', type: 'button', text: !locked || staff ? 'فتح الكشف' : 'عرض', onclick: () => go('sheet', { cid: a.cid, sid: a.sid }) }),
         h('button', { class: 'btn small', type: 'button', text: 'Excel', onclick: () => exportAssignment(a.cid, a.sid) }),
-        staff && h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: () => deleteSheet(a.cid, a.sid) })));
+        writer && h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: () => deleteSheet(a.cid, a.sid) })));
   });
   wrap.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl cards' },
     h('thead', {}, h('tr', {}, h('th', { text: 'الفصل' }), h('th', { text: 'المادة' }), staff && h('th', { text: 'المعلم' }), h('th', { text: 'الإنجاز' }), h('th', { text: 'الحالة' }), h('th'))),
@@ -1229,7 +1232,7 @@ function pageAssign() {
 /* =====================================================================
    المستخدمون (إدارة النظام)
    ===================================================================== */
-const ROLES = { teacher: 'معلم', control: 'الكنترول', admin: 'إدارة النظام' };
+const ROLES = { teacher: 'معلم', control: 'إدارة النظام-كنترول', admin: 'مراقبة النظام' };
 function pageStaff() {
   const wrap = h('div', {}, h('h1', { class: 'page', text: 'المستخدمون' }),
     h('p', { class: 'lead', text: 'حدّد مين من زمايلك يستخدم النظام وبأي دور.' }));
@@ -1259,7 +1262,7 @@ function pageStaff() {
     if (S.fb) wrap.append(staffImportCard());
   const ids = Object.keys(S.staff);
   const rows = [];
-  rows.push(h('tr', {}, h('td', {}, h('strong', { text: 'مالك الصفحة' })), h('td', { text: ROLES.admin }), h('td', {})));
+  rows.push(h('tr', {}, h('td', {}, h('strong', { text: 'مالك الصفحة' })), h('td', { text: ROLES.control }), h('td', {})));
   ids.sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'ar')).forEach(id => {
     const rs = h('select', { 'aria-label': 'الدور', onchange: async e => { await write('staff/' + id, { role: e.target.value }); logAudit({ x: 'staff', n: nameOf(id) + ' – ' + ROLES[e.target.value] }); } },
       Object.entries(ROLES).map(([k, v]) => h('option', { value: k, text: v })));
@@ -1592,9 +1595,9 @@ async function purgePg(field, value, pred) {
     for (const d of q.docs) { if (!pred || pred(d.data())) await del('pg/' + d.id); }
   } catch (e) { /* تجاهل */ }
 }
-async function writeVerified(path, data) {
-  await write(path, data);
-  try { return (await db.doc(path).get()).exists; } catch (e) { return false; }
+async function writeVerified(path, data) {                 // كتابة مباشرة: لو فشلت بترمي خطأ بدل ما تتأجّل بصمت
+  await db.doc(path).set(data);
+  return true;
 }
 async function createParentAuth(login, password) {          // بيرجع uid الحساب الجديد
   const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'psec' + Date.now() + Math.random().toString(36).slice(2, 5));
@@ -1676,8 +1679,8 @@ async function createPair(k, pname, mob) {
     if (mob) pDoc.mob = mob;
     if (!(await writeVerified('parents/' + sUid, sDoc)) || !(await writeVerified('parents/' + pUid, pDoc))) throw new Error('تعذّر الحفظ');
     const base = { kid: k.kid, sname: k.sname, cname: k.cname, pname: pn, pw, t };
-    await write('creds/' + sUid, Object.assign({ login: code, type: 's' }, base));
-    await write('creds/' + pUid, Object.assign({ login: 'p-' + code, type: 'p' }, base));
+    await writeVerified('creds/' + sUid, Object.assign({ login: code, type: 's' }, base));
+    await writeVerified('creds/' + pUid, Object.assign({ login: 'p-' + code, type: 'p' }, base));
     return { sname: k.sname, cname: k.cname, pname: pn, scode: code, pcode: 'p-' + code, pw };
   } catch (e) {
     for (const u of [sUid, pUid]) { if (u) { try { await del('parents/' + u); await del('creds/' + u); } catch (x) { /* تجاهل */ } } }
@@ -1688,6 +1691,8 @@ async function createPair(k, pname, mob) {
 }
 async function runParentPlan(P, onProgress) {
   const res = { cards: [], made: 0, failed: [], stopped: false };
+  try { await db.doc('creds/_probe').set({ t: Date.now() }); await db.doc('creds/_probe').delete(); }
+  catch (e) { res.failed.push({ name: 'قواعد Firestore', why: 'مقدرتش أكتب في creds فمفيش حسابات اتعملت. انشر القاعدة: match /creds/{u} { allow read, write: if isStaff(); } وحدّث الصفحة.' }); return res; }
   let n = 0;
   for (const k of P.items) {
     n++; onProgress(n, P.items.length);
@@ -1695,11 +1700,12 @@ async function runParentPlan(P, onProgress) {
     catch (e) {
       const c = e && e.code;
       res.failed.push({ name: k.sname + ' – ' + k.cname, why: c && c.startsWith('auth/') ? authErr(e) : (e.message || 'خطأ') });
-      if (c === 'auth/too-many-requests' || c === 'auth/quota-exceeded') { res.stopped = true; break; }
+      if (c === 'auth/too-many-requests' || c === 'auth/quota-exceeded') { res.stopped = true; res.stoppedAt = { sname: k.sname, cname: k.cname, done: res.made, total: P.items.length, when: new Date().toLocaleString('ar-EG') }; break; }
     }
     await sleep(350);
   }
-  logAudit({ x: 'staff', n: 'إنشاء حسابات طلاب وأولياء أمور: ' + res.made + ' طالب' });
+  logAudit({ x: 'staff', n: 'إنشاء حسابات طلاب وأولياء أمور: ' + res.made + ' طالب' + (res.stoppedAt ? ' – توقف عند: ' + res.stoppedAt.sname + ' (' + res.stoppedAt.cname + ')' : '') });
+  try { if (res.stoppedAt) localStorage.setItem('wls_stop', JSON.stringify(res.stoppedAt)); else if (!res.failed.length) localStorage.removeItem('wls_stop'); } catch (e) { /* تجاهل */ }
   return res;
 }
 async function downloadCards(cards) {
@@ -1807,8 +1813,10 @@ function pageParents() {
     h('p', { class: 'lead', text: 'كل طالب ليه حساب بكود وكلمة مرور. وولي أمره بيدخل بنفس الكود ونفس الكلمة، بس بيبدأ بـ p- (مثال: S3K9Q للطالب، و p-S3K9Q لولي الأمر).' }));
   if (!S.fb) { wrap.append(h('div', { class: 'banner err', text: 'الحسابات بتشتغل مع Firebase بس، مش الوضع المحلي.' })); return wrap; }
   const file = h('input', { type: 'file', accept: '.xlsx,.csv', multiple: true, id: 'parentFile' });
-  const search = h('input', { type: 'search', placeholder: 'ابحث بالاسم أو الفصل أو الكود', style: 'max-width:340px' });
-  const out = h('div'), list = h('div'), status = h('div', { class: 'status', role: 'status' });
+  const search = h('input', { type: 'search', placeholder: 'ابحث بالاسم أو الفصل أو الكود', style: 'flex:1 1 240px;min-width:220px;max-width:380px' });
+  const out = h('div'), list = h('div'), orphanBox = h('div'), status = h('div', { class: 'status', role: 'status' });
+  let parentDocs = [], credIds = new Set(), credsOk = false;
+  try { const ls = JSON.parse(localStorage.getItem('wls_stop') || 'null'); if (ls) out.append(h('div', { class: 'banner warn', text: 'آخر إنشاء وقف عند الطالب «' + ls.sname + ' – ' + ls.cname + '» (اتعمل ' + ls.done + ' من ' + ls.total + ' – ' + ls.when + '). كمّل بزر «إنشاء لكل الطلاب اللي من غير حساب».' })); } catch (e) { /* تجاهل */ }
   let plan = null, busy = false, all = [], shown = [];
   const sel = new Set();
   const delBtn = h('button', { class: 'btn danger', type: 'button', text: 'حذف المحدد (0)', onclick: () => { const gs = all.filter(g => sel.has(g.kid)); if (!gs.length) { toast('حدّد طلاب الأول.', true); return; } deletePairs(gs, (d, t) => { status.textContent = 'جارٍ الحذف… ' + d + ' من ' + t; }).then(() => { status.textContent = ''; }); } });
@@ -1832,7 +1840,7 @@ function pageParents() {
         try { plan = buildAllPlan(await existing()); drawPlan(); } catch (e) { toast(errText(e), true); }
       } }),
       h('button', { class: 'btn', type: 'button', text: 'مزامنة الدرجات', onclick: syncParentData }))),
-    status, out, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }),
+    status, out, orphanBox, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }),
     h('div', { class: 'form-row' }, search, delBtn,
       h('button', { class: 'btn', type: 'button', text: 'تنزيل المعروض', onclick: () => {
         if (!shown.length) { toast('مفيش حاجة للتنزيل.', true); return; }
@@ -1853,18 +1861,26 @@ function pageParents() {
       h('tbody', {}, P.items.slice(0, 150).map(k => h('tr', {}, h('td', { text: k.sname }), h('td', { text: k.cname }), h('td', { text: k.pname || '—' })))))));
     out.append(h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحسابات', onclick: async e => {
       if (busy) return;
-      if (!(await confirmBox('هيتعمل ' + n * 2 + ' حساب (طالب وولي أمر لكل طالب).\nالبيانات هتفضل ظاهرة لك في الجدول.', 'تنفيذ'))) return;
+      const batch = plan;
+      if (!(await confirmBox('هيتعمل ' + batch.items.length * 2 + ' حساب (طالب وولي أمر لكل طالب).\nالبيانات هتفضل ظاهرة لك في الجدول.', 'تنفيذ'))) return;
       busy = true; e.target.disabled = true;
-      const res = await runParentPlan(plan, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
+      const res = await runParentPlan(batch, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
       busy = false; plan = null; file.value = ''; status.textContent = ''; drawResult(res);
     } })));
   }
   function drawResult(res) {
     out.innerHTML = '';
-    out.append(h('div', { class: 'banner ok', text: 'تم إنشاء حسابات ' + res.made + ' طالب (وأولياء أمورهم). البيانات ظاهرة في الجدول تحت.' }));
-    if (res.stopped) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء مؤقتًا بسبب كتر الطلبات. اضغط «إنشاء لكل الطلاب اللي من غير حساب» تاني بعد ساعة وهيكمل من حيث وقف.' }));
+    if (res.made) out.append(h('div', { class: 'banner ok', text: 'تم إنشاء حسابات ' + res.made + ' طالب (وأولياء أمورهم). البيانات ظاهرة في الجدول تحت. لو فاضل طلاب، استنى ساعة أو غيّر الإنترنت (مثلًا هوت سبوت الموبايل) واضغط «إنشاء لكل الطلاب اللي من غير حساب» تاني.' }));
+    if (res.stoppedAt) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء عند الطالب «' + res.stoppedAt.sname + ' – ' + res.stoppedAt.cname + '» (اتعمل ' + res.stoppedAt.done + ' من ' + res.stoppedAt.total + '). اللي اتعمل اتسجّل وظاهر تحت. استنى ساعة أو غيّر الإنترنت، وبعدين اضغط «إنشاء لكل الطلاب اللي من غير حساب» وهيكمل من الطالب ده.' }));
     res.failed.forEach(f => out.append(h('div', { class: 'banner err', text: f.name + ': ' + f.why })));
-    if (res.cards.length) out.append(h('button', { class: 'btn', type: 'button', text: 'تنزيل ملف اللي اتعمل دلوقتي (' + res.cards.length + ')', onclick: () => downloadCards(res.cards) }));
+    if (res.cards.length) {
+      out.append(h('button', { class: 'btn', type: 'button', text: 'تنزيل ملف اللي اتعمل دلوقتي (' + res.cards.length + ')', onclick: () => downloadCards(res.cards) }));
+      out.append(h('div', { class: 'table-wrap', style: 'margin-top:12px' }, h('table', { class: 'tbl' },
+        h('thead', {}, h('tr', {}, ['الطالب', 'الفصل', 'كود الطالب', 'كود ولي الأمر', 'كلمة المرور'].map(t => h('th', { text: t })))),
+        h('tbody', {}, res.cards.slice(0, 300).map(c => h('tr', {}, h('td', { text: c.sname }), h('td', { text: c.cname }),
+          h('td', { dir: 'ltr', style: 'text-align:right', text: c.scode }), h('td', { dir: 'ltr', style: 'text-align:right', text: c.pcode }), h('td', { dir: 'ltr', style: 'text-align:right', text: c.pw })))))));
+      if (res.stoppedAt) downloadCards(res.cards);
+    }
   }
   const pwCell = g => {
     const sp = h('span', { dir: 'ltr', text: '••••••••' }); let on = false;
@@ -1891,10 +1907,27 @@ function pageParents() {
     if (shown.length > 300) list.append(h('p', { class: 'note', text: 'معروض أول 300 بس. استخدم البحث أو «تنزيل المعروض».' }));
   };
   search.addEventListener('input', draw);
-  auditUnsub = db.collection('creds').onSnapshot(snap => {
+  const drawOrphans = () => {
+    orphanBox.innerHTML = '';
+    const orphans = parentDocs.filter(d => (d.type === 's' || d.type === 'p') && !credIds.has(d.id));
+    if (!credsOk || !orphans.length) return;
+    orphanBox.append(h('div', { class: 'banner warn', text: orphans.length + ' حساب اتعمل من غير ما بيانات دخوله تتحفظ (غالبًا لأن قاعدة creds مكانتش منشورة). كلمات مرورهم مش معروفة، فامسحهم من هنا وأعد إنشاءهم. ولو عايز تنضّف Firebase كمان: Authentication ← Users ← امسح اللي إيميلهم بينتهي بـ @parents.wiseness.school.' }),
+      h('button', { class: 'btn danger', type: 'button', text: 'مسح الحسابات الناقصة (' + orphans.length + ')', onclick: async () => {
+        if (!(await confirmBox('مسح ' + orphans.length + ' حساب ناقص من الموقع؟ هتقدر تعمل لهم حسابات جديدة بعدها.', 'مسح'))) return;
+        try { for (const d of orphans) await del('parents/' + d.id); toast('تم المسح.'); } catch (e) { toast(errText(e), true); }
+      } }));
+  };
+  const u1 = db.collection('creds').onSnapshot(snap => {
+    credsOk = true; credIds = new Set(snap.docs.map(d => d.id));
     all = groupPairs(snap.docs.map(d => Object.assign({ id: d.id }, d.data())));
-    Array.from(sel).forEach(k => { if (!all.some(g => g.kid === k)) sel.delete(k); }); upd(); draw();
-  }, e => { list.innerHTML = ''; list.append(h('div', { class: 'banner err', text: errText(e) })); });
+    Array.from(sel).forEach(k => { if (!all.some(g => g.kid === k)) sel.delete(k); }); upd(); draw(); drawOrphans();
+  }, e => {
+    credsOk = false; list.innerHTML = '';
+    if (e && e.code === 'permission-denied') list.append(h('div', { class: 'banner err', text: 'مفيش صلاحية لقراءة بيانات الدخول. انشر القاعدة دي في Firestore ← Rules (جوه match /documents) واضغط Publish، وبعدين حدّث الصفحة:' }), h('pre', { dir: 'ltr', style: 'padding:12px;background:var(--head);border-radius:6px;overflow-x:auto', text: 'match /creds/{u} {\n  allow read, write: if isStaff();\n}' }));
+    else list.append(h('div', { class: 'banner err', text: errText(e) }));
+  });
+  const u2 = db.collection('parents').onSnapshot(snap => { parentDocs = snap.docs.map(d => Object.assign({ id: d.id }, d.data())); drawOrphans(); }, () => {});
+  auditUnsub = () => { u1(); u2(); };
   return wrap;
 }
 
@@ -2100,7 +2133,7 @@ async function exportAssignment(cid, sid) {
   if (isStaff()) logAudit({ x: 'export', a: cid, s: sid });
 }
 async function exportClass(cid) {
-  if (!isStaff()) return;
+  if (!isStaff() && !isViewer()) return;
   toast('جارٍ تجهيز الملف…');
   const subs = allAssignments().filter(a => a.cid === cid);
   if (!subs.length) { toast('مفيش مواد متكلّف بيها معلمين في الفصل ده.', true); return; }
@@ -2392,7 +2425,7 @@ const SCOLS = {
   pw: ['كلمة المرور المبدئية', 'كلمة المرور', 'الباسورد', 'password'],
   role: ['الدور', 'role']
 };
-const ROLE_MAP = { 'معلم': 'teacher', 'معلمة': 'teacher', 'teacher': 'teacher', 'الكنترول': 'control', 'كنترول': 'control', 'control': 'control', 'إدارة النظام': 'admin', 'ادارة النظام': 'admin', 'إدارة': 'admin', 'admin': 'admin' };
+const ROLE_MAP = { 'معلم': 'teacher', 'معلمة': 'teacher', 'teacher': 'teacher', 'إدارة النظام-كنترول': 'control', 'ادارة النظام-كنترول': 'control', 'إدارة النظام': 'control', 'ادارة النظام': 'control', 'إدارة': 'control', 'الكنترول': 'control', 'كنترول': 'control', 'control': 'control', 'مراقبة النظام': 'admin', 'مراقبه النظام': 'admin', 'مراقبة': 'admin', 'مراقب': 'admin', 'admin': 'admin', 'viewer': 'admin' };
 function staffImportCard() {
   const file = h('input', { type: 'file', accept: '.xlsx,.csv', id: 'staffFile' });
   const out = h('div'), status = h('div', { class: 'status', role: 'status' });
