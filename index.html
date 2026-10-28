@@ -2417,7 +2417,7 @@ async function init() {
   if (!window.claude || !window.claude.use) {
     const useFb = !!FIREBASE_CONFIG.apiKey;
     try { if (useFb) await setupFirebase(); else await setupLocal(); }
-    catch (e) { S.fatal = useFb ? 'تعذّر الاتصال بـ Firebase. راجع الإعدادات والاتصال بالإنترنت.' : 'تعذّر تشغيل النظام على المتصفح ده (التخزين المحلي غير متاح).'; renderAll(); return; }
+    catch (e) { console.error(e); S.fatal = useFb ? 'تعذّر الاتصال بـ Firebase: ' + ((e && (e.code || e.message)) || 'خطأ غير معروف') : 'تعذّر تشغيل النظام على المتصفح ده (التخزين المحلي غير متاح).'; renderAll(); return; }
   } else {
     try {
       [db, userCap, dlCap] = await Promise.all([window.claude.use('db'), window.claude.use('user'), window.claude.use('downloads')]);
