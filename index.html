@@ -1679,6 +1679,8 @@ async function createPair(k, pname, mob) {
     return { sname: k.sname, cname: k.cname, pname: pn, scode: code, pcode: 'p-' + code, pw };
   } catch (e) {
     for (const u of [sUid, pUid]) { if (u) { try { await del('parents/' + u); await del('creds/' + u); } catch (x) { /* تجاهل */ } } }
+    if (sUid) await deleteAuthUser(studentLogin(code), pw);
+    if (pUid) await deleteAuthUser(parentLogin(code), pw);
     throw e;
   }
 }
@@ -1710,20 +1712,43 @@ async function downloadCards(cards) {
     await saveFile('بيانات دخول الطلاب وأولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
   } catch (e) { await saveFile('بيانات دخول الطلاب وأولياء الأمور.csv', csvOf([head].concat(rows))); }
 }
+// بيمسح مستخدم الدخول نفسه من Firebase Authentication: بيدخل بيه (إحنا عارفين كلمة المرور) ويمسحه
+async function deleteAuthUser(email, pw) {
+  const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'pdel' + Date.now() + Math.random().toString(36).slice(2, 5));
+  try {
+    const a = FB.authM.getAuth(sec);
+    const cred = await FB.authM.signInWithEmailAndPassword(a, email, pw);
+    await FB.authM.deleteUser(cred.user);
+    return true;
+  } catch (e) { return false; }
+  finally { try { await FB.appM.deleteApp(sec); } catch (x) { /* تجاهل */ } }
+}
 async function reissuePair(g) {
-  if (!(await confirmBox('إصدار كود وكلمة مرور جديدين لـ «' + g.sname + '» (الطالب وولي الأمر)؟\nالدخول القديم هيتقفل فورًا.', 'إصدار'))) return;
+  if (!(await confirmBox('إصدار كود وكلمة مرور جديدين لـ «' + g.sname + '» (الطالب وولي الأمر)؟\nالدخول القديم هيتمسح فورًا.', 'إصدار'))) return;
   try {
     await createPair({ kid: g.kid, sname: g.sname, cname: g.cname }, g.pname);
     for (const u of [g.sUid, g.pUid]) { if (u) { await del('parents/' + u); await del('creds/' + u); } }
+    if (g.scode) await deleteAuthUser(loginId(g.scode), g.pw);
+    if (g.pcode) await deleteAuthUser(loginId(g.pcode), g.pw);
     logAudit({ x: 'staff', n: 'إعادة إصدار دخول: ' + g.sname });
     toast('تم الإصدار. البيانات الجديدة ظاهرة في الجدول.');
   } catch (e) { toast((e && e.code && e.code.startsWith('auth/')) ? authErr(e) : (e.message || 'تعذّر الإصدار.'), true); }
 }
-async function deletePair(g) {
-  if (!(await confirmBox('حذف حسابات «' + g.sname + '» (الطالب وولي الأمر)؟ مش هيقدروا يشوفوا أي درجات تاني.', 'حذف'))) return;
+// حذف نهائي من الموقع ومن Firebase Authentication
+async function deletePairs(list, onProgress) {
+  if (!list.length) return;
+  const msg = list.length === 1 ? 'حذف حسابات «' + list[0].sname + '» (الطالب وولي الأمر) نهائيًا؟' : 'حذف حسابات ' + list.length + ' طالب (وأولياء أمورهم) نهائيًا؟';
+  if (!(await confirmBox(msg + '\nهيتمسحوا من الموقع ومن Firebase Authentication، ومش هيقدروا يدخلوا تاني.', 'حذف'))) return;
+  let n = 0, authFail = 0;
   try {
-    for (const u of [g.sUid, g.pUid]) { if (u) { await del('parents/' + u); await del('creds/' + u); } }
-    logAudit({ x: 'staff', n: 'حذف حسابات: ' + g.sname });
+    for (const g of list) {
+      n++; if (onProgress) onProgress(n, list.length);
+      for (const code of [g.scode, g.pcode]) { if (code && !(await deleteAuthUser(loginId(code), g.pw))) authFail++; }
+      for (const u of [g.sUid, g.pUid]) { if (u) { await del('parents/' + u); await del('creds/' + u); } }
+      await sleep(250);
+    }
+    logAudit({ x: 'staff', n: 'حذف حسابات ' + list.length + ' طالب' });
+    toast(authFail ? 'اتمسحوا من الموقع. ' + authFail + ' حساب دخول فضلوا في Authentication، امسحهم من Firebase Console.' : 'تم الحذف.', !!authFail);
   } catch (e) { toast(errText(e), true); }
 }
 function groupPairs(items) {
@@ -1783,6 +1808,9 @@ function pageParents() {
   const search = h('input', { type: 'search', placeholder: 'ابحث بالاسم أو الفصل أو الكود', style: 'max-width:340px' });
   const out = h('div'), list = h('div'), status = h('div', { class: 'status', role: 'status' });
   let plan = null, busy = false, all = [], shown = [];
+  const sel = new Set();
+  const delBtn = h('button', { class: 'btn danger', type: 'button', text: 'حذف المحدد (0)', onclick: () => { const gs = all.filter(g => sel.has(g.kid)); if (!gs.length) { toast('حدّد طلاب الأول.', true); return; } deletePairs(gs, (d, t) => { status.textContent = 'جارٍ الحذف… ' + d + ' من ' + t; }).then(() => { status.textContent = ''; }); } });
+  const upd = () => { delBtn.textContent = 'حذف المحدد (' + sel.size + ')'; };
   const existing = async () => (await db.collection('parents').get()).docs.map(d => d.data());
   wrap.append(h('div', { class: 'card' },
     h('p', { class: 'note', text: 'ممكن تنشئ الحسابات من ملف (الفصل | اسم الطالب | اسم ولي الأمر | موبايل ولي الأمر) أو لكل الطلاب اللي من غير حساب مرة واحدة. الطالب بيتلاقى بالفصل والاسم، فلازم يكون مضاف قبل كده. بيانات الدخول بتتحفظ وتفضل ظاهرة لك في الجدول تحت، ومش لازم تنزّلها.' }),
@@ -1803,7 +1831,7 @@ function pageParents() {
       } }),
       h('button', { class: 'btn', type: 'button', text: 'مزامنة الدرجات', onclick: syncParentData }))),
     status, out, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }),
-    h('div', { class: 'form-row' }, search,
+    h('div', { class: 'form-row' }, search, delBtn,
       h('button', { class: 'btn', type: 'button', text: 'تنزيل المعروض', onclick: () => {
         if (!shown.length) { toast('مفيش حاجة للتنزيل.', true); return; }
         downloadCards(shown.map(g => ({ sname: g.sname, cname: g.cname, pname: g.pname, scode: g.scode || '', pcode: g.pcode || '', pw: g.pw || '' })));
@@ -1849,19 +1877,21 @@ function pageParents() {
     if (!all.length) { list.append(h('div', { class: 'empty', text: 'لسه مفيش حسابات.' })); return; }
     if (!shown.length) { list.append(h('div', { class: 'empty', text: 'مفيش نتائج.' })); return; }
     list.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-      h('thead', {}, h('tr', {}, h('th', { text: 'الطالب' }), h('th', { text: 'الفصل' }), h('th', { text: 'ولي الأمر' }), h('th', { text: 'كود الطالب' }), h('th', { text: 'كود ولي الأمر' }), h('th', { text: 'كلمة المرور' }), h('th'))),
+      h('thead', {}, h('tr', {}, h('th', {}, h('input', { type: 'checkbox', 'aria-label': 'تحديد كل المعروض', checked: shown.slice(0, 300).every(g => sel.has(g.kid)), onchange: e => { shown.slice(0, 300).forEach(g => { if (e.target.checked) sel.add(g.kid); else sel.delete(g.kid); }); upd(); draw(); } })), h('th', { text: 'الطالب' }), h('th', { text: 'الفصل' }), h('th', { text: 'ولي الأمر' }), h('th', { text: 'كود الطالب' }), h('th', { text: 'كود ولي الأمر' }), h('th', { text: 'كلمة المرور' }), h('th'))),
       h('tbody', {}, shown.slice(0, 300).map(g => h('tr', {},
+        h('td', {}, h('input', { type: 'checkbox', 'aria-label': 'تحديد', checked: sel.has(g.kid), onchange: e => { if (e.target.checked) sel.add(g.kid); else sel.delete(g.kid); upd(); } })),
         h('td', {}, h('strong', { text: g.sname || '—' })), h('td', { text: g.cname || '' }), h('td', { text: g.pname || '—' }),
         h('td', { dir: 'ltr', style: 'text-align:right', text: g.scode || '—' }), h('td', { dir: 'ltr', style: 'text-align:right', text: g.pcode || '—' }),
         pwCell(g),
         h('td', { class: 'row-actions' },
           h('button', { class: 'btn small', type: 'button', text: 'إعادة إصدار', onclick: () => reissuePair(g) }),
-          h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: () => deletePair(g) }))))))));
+          h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: () => deletePairs([g]) }))))))));
     if (shown.length > 300) list.append(h('p', { class: 'note', text: 'معروض أول 300 بس. استخدم البحث أو «تنزيل المعروض».' }));
   };
   search.addEventListener('input', draw);
   auditUnsub = db.collection('creds').onSnapshot(snap => {
-    all = groupPairs(snap.docs.map(d => Object.assign({ id: d.id }, d.data()))); draw();
+    all = groupPairs(snap.docs.map(d => Object.assign({ id: d.id }, d.data())));
+    Array.from(sel).forEach(k => { if (!all.some(g => g.kid === k)) sel.delete(k); }); upd(); draw();
   }, e => { list.innerHTML = ''; list.append(h('div', { class: 'banner err', text: errText(e) })); });
   return wrap;
 }
