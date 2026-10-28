@@ -7,7 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
+<script>try{var __t=localStorage.getItem('theme');if(__t==='light'||__t==='dark')document.documentElement.setAttribute('data-theme',__t);}catch(e){}</script>
 <style>
+  :root { color-scheme: light; } :root[data-theme="dark"] { color-scheme: dark; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+  #themeBtn { flex: none; }
   :root {
     --navy: #141266; --navy-2: #1d1b86; --navy-3: #2b29a0;
     --blue: #0092db; --sky: #3bb7fd; --royal: #0a6bfa; --yellow: #ffd208;
@@ -229,8 +233,18 @@
     <div><div class="brand-name" id="schoolName">نظام رصد الدرجات</div><div class="brand-sub" id="termLine"></div></div>
   </div>
   <nav class="tabs" id="tabs" aria-label="التنقل" hidden></nav>
+  <button class="btn small" id="themeBtn" type="button" aria-label="تبديل الوضع الفاتح/الداكن"></button>
   <div class="chip" id="meChip"></div>
 </header>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('themeBtn');
+  function cur() { var t = root.getAttribute('data-theme'); return t || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+  function paint() { btn.textContent = cur() === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'; }
+  btn.addEventListener('click', function () { var n = cur() === 'dark' ? 'light' : 'dark'; root.setAttribute('data-theme', n); try { localStorage.setItem('theme', n); } catch (e) {} paint(); });
+  paint();
+})();
+</script>
 <main id="view"><div class="empty">جارٍ التحميل…</div></main>
 <div id="toast" aria-live="polite"></div>
 <div id="modal"></div>
@@ -709,10 +723,10 @@ function header() {
   const chip = $('#meChip'); chip.innerHTML = '';
   if (S.me) {
     const nm = S.me.name || nameOf(S.me.id) || 'مستخدم';
-    const rl = { admin: 'إدارة النظام', control: 'الكنترول', teacher: 'معلم', parent: 'ولي أمر' }[role()] || 'غير مفعّل';
+    const rl = { admin: 'إدارة النظام', control: 'الكنترول', teacher: 'معلم', parent: (S.parentDoc && S.parentDoc.type === 's') ? 'طالب' : 'ولي أمر' }[role()] || 'غير مفعّل';
     chip.append(h('b', { text: nm }), h('span', { text: rl }));
     if (S.fb) chip.append(h('div', { class: 'acts', style: 'justify-content:flex-end;margin-top:4px' },
-      h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: S.parentMode ? changeMyPassword : async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
+      S.parentMode ? null : h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: S.parentMode ? changeMyPassword : async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
       h('button', { class: 'btn small', type: 'button', text: 'خروج', onclick: fbLogout })));
   }
   const tabs = $('#tabs'); tabs.innerHTML = '';
@@ -1591,26 +1605,24 @@ async function createParentAuth(login, password) {          // بيرجع uid ا
   } finally { try { await FB.appM.deleteApp(sec); } catch (e) { /* تجاهل */ } }
 }
 const kidsInfo = list => { const o = {}; list.forEach(k => { o[k.kid] = { n: k.sname, c: k.cname }; }); return o; };
+const newKidCode = () => 'S' + randStr(5);                    // كود الطالب. ولي الأمر = p- + نفس الكود
+const studentLogin = code => code.toLowerCase() + '@' + PDOM;
+const parentLogin = code => 'p-' + code.toLowerCase() + '@' + PDOM;
+const linkedKids = existing => { const s = new Set(); existing.forEach(p => (p.kids || []).forEach(k => s.add(k))); return s; };
 
 function buildParentPlan(sheets, existing) {
-  const idx = new Map(), warnings = [], groups = new Map();
+  const idx = new Map(), warnings = [], seen = new Set(), items = [], linked = linkedKids(existing);
   Object.keys(S.classes).forEach(cid => (S.classes[cid].students || []).forEach(st => {
     const k = normAr(S.classes[cid].name) + '|' + normAr(st.name);
     if (!idx.has(k)) idx.set(k, []);
     idx.get(k).push({ cid, st });
   }));
-  const linked = new Set(), byEmail = new Map(), byMob = new Map(), seen = new Set();
-  existing.forEach(p => {
-    (p.kids || []).forEach(k => linked.add(k));
-    if (p.email) byEmail.set(String(p.email).toLowerCase(), p);
-    if (p.mob) byMob.set(p.mob, p);
-  });
-  let rowsN = 0, already = 0, dup = 0, badMail = 0, anon = 0;
+  let rowsN = 0, already = 0, dup = 0;
   const notFound = [], ambiguous = [];
   sheets.forEach(rows => {
     if (!rows.length) return;
     const head = rows[0].map(x => String(x).trim().toLowerCase());
-    const ci = colIdx(head, PCOLS.cls), ui = colIdx(head, PCOLS.stu), pi = colIdx(head, PCOLS.par), mi = colIdx(head, PCOLS.mob), ei = colIdx(head, PCOLS.em);
+    const ci = colIdx(head, PCOLS.cls), ui = colIdx(head, PCOLS.stu), pi = colIdx(head, PCOLS.par), mi = colIdx(head, PCOLS.mob);
     if (ci < 0 || ui < 0) return;
     rows.slice(1).forEach(r => {
       const cn = (r[ci] || '').trim(), sn = cleanName(r[ui] || ''); if (!cn || !sn) return;
@@ -1622,97 +1634,106 @@ function buildParentPlan(sheets, existing) {
       if (linked.has(kid)) { already++; return; }
       if (seen.has(kid)) { dup++; return; }
       seen.add(kid);
-      let email = ei >= 0 ? (r[ei] || '').trim().toLowerCase() : '';
-      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { badMail++; email = ''; }
       let mob = mi >= 0 ? normalizeNum(r[mi] || '').replace(/\D/g, '') : '';
-      if (mob.length >= 10) mob = mob.slice(-10); else mob = '';
+      mob = mob.length >= 10 ? mob.slice(-10) : '';
       const pname = pi >= 0 ? cleanName(r[pi] || '').slice(0, 120) : '';
-      const key = email ? 'e:' + email : mob ? 'm:' + mob : 'r:' + (anon++);
-      if (!groups.has(key)) groups.set(key, { key, name: pname, email, mob, kids: [], existing: (email && byEmail.get(email)) || (mob && byMob.get(mob)) || null });
-      const g = groups.get(key);
-      if (!g.name && pname) g.name = pname;
-      g.kids.push({ kid, cid: hit[0].cid, stId: hit[0].st.id, sname: hit[0].st.name, cname: className(hit[0].cid) });
+      items.push({ kid, cid: hit[0].cid, stId: hit[0].st.id, sname: hit[0].st.name, cname: className(hit[0].cid), pname, mob });
     });
   });
   if (!rowsN) warnings.push('مالقيتش أعمدة «الفصل» و«اسم الطالب». راجع عناوين الأعمدة.');
   if (notFound.length) warnings.push('طلاب مش لاقيهم في الفصول (اتخطّوا): ' + notFound.length + ' – مثال: ' + notFound.slice(0, 5).join('، '));
   if (ambiguous.length) warnings.push('أسماء مكررة في نفس الفصل ومينفعش نحدد أنهي طالب (اتخطّوا): ' + ambiguous.slice(0, 5).join('، '));
-  if (already) warnings.push('طلاب عندهم حساب ولي أمر قبل كده (اتخطّوا): ' + already);
+  if (already) warnings.push('طلاب عندهم حسابات قبل كده (اتخطّوا): ' + already);
   if (dup) warnings.push('طلاب مذكورين أكتر من مرة في الملف (اتاخد أول سطر): ' + dup);
-  if (badMail) warnings.push('إيميلات شكلها غلط اتتجاهلت وهيتعملها كود: ' + badMail);
-  if (anon) warnings.push('الأولياء من غير موبايل ولا إيميل: كل طالب هياخد حساب لوحده (الإخوات مش هيتجمّعوا).');
-  return { groups: Array.from(groups.values()), warnings };
+  return { items, warnings };
+}
+function buildAllPlan(existing) {                              // كل طالب من غير حساب، من غير ملف
+  const linked = linkedKids(existing), items = []; let already = 0;
+  Object.keys(S.classes).forEach(cid => students(cid).forEach(st => {
+    const kid = cid + '__' + st.id;
+    if (linked.has(kid)) { already++; return; }
+    items.push({ kid, cid, stId: st.id, sname: st.name, cname: className(cid), pname: '', mob: '' });
+  }));
+  return { items, warnings: already ? ['طلاب عندهم حسابات قبل كده (اتخطّوا): ' + already] : [] };
 }
 
+// بيعمل حسابين: الطالب (كود) وولي الأمر (p-كود) بنفس كلمة المرور، ويحفظ البيانات للإدارة في creds
+async function createPair(k, pname, mob) {
+  const pw = newParentPw(); let code = '', sUid = null, pUid = null;
+  try {
+    for (let t = 0; t < 4 && !sUid; t++) {
+      code = newKidCode();
+      try { sUid = await createParentAuth(studentLogin(code), pw); }
+      catch (e) { if (e && e.code === 'auth/email-already-in-use') continue; throw e; }
+    }
+    if (!sUid) throw new Error('تعذّر توليد كود');
+    pUid = await createParentAuth(parentLogin(code), pw);
+    const t = Date.now(), info = kidsInfo([k]), pn = pname || ('ولي أمر ' + k.sname);
+    const sDoc = { name: k.sname, kids: [k.kid], info, login: code, type: 's', t };
+    const pDoc = { name: pn, kids: [k.kid], info, login: 'p-' + code, type: 'p', t };
+    if (mob) pDoc.mob = mob;
+    if (!(await writeVerified('parents/' + sUid, sDoc)) || !(await writeVerified('parents/' + pUid, pDoc))) throw new Error('تعذّر الحفظ');
+    const base = { kid: k.kid, sname: k.sname, cname: k.cname, pname: pn, pw, t };
+    await write('creds/' + sUid, Object.assign({ login: code, type: 's' }, base));
+    await write('creds/' + pUid, Object.assign({ login: 'p-' + code, type: 'p' }, base));
+    return { sname: k.sname, cname: k.cname, pname: pn, scode: code, pcode: 'p-' + code, pw };
+  } catch (e) {
+    for (const u of [sUid, pUid]) { if (u) { try { await del('parents/' + u); await del('creds/' + u); } catch (x) { /* تجاهل */ } } }
+    throw e;
+  }
+}
 async function runParentPlan(P, onProgress) {
-  const res = { cards: [], made: 0, added: 0, mailed: 0, failed: [], stopped: false };
+  const res = { cards: [], made: 0, failed: [], stopped: false };
   let n = 0;
-  for (const g of P.groups) {
-    n++; onProgress(n, P.groups.length);
-    try {
-      if (g.existing) {
-        const kids = (g.existing.kids || []).concat(g.kids.map(k => k.kid));
-        if (!(await writeVerified('parents/' + g.existing.id, { kids, info: kidsInfo(g.kids) }))) throw new Error('تعذّر الحفظ');
-        res.added += g.kids.length; continue;
-      }
-      const real = !!g.email, pw = newParentPw();
-      let uid = null, login = real ? g.email : '';
-      for (let t = 0; t < 4 && !uid; t++) {
-        if (!real) login = newParentCode().toLowerCase() + '@' + PDOM;
-        try { uid = await createParentAuth(login, pw); }
-        catch (e) { if (e && e.code === 'auth/email-already-in-use' && !real) continue; throw e; }
-      }
-      if (!uid) throw new Error('تعذّر توليد كود');
-      const shown = real ? login : login.split('@')[0].toUpperCase();
-      const doc = { name: g.name || 'ولي أمر', kids: g.kids.map(k => k.kid), info: kidsInfo(g.kids), login: shown, t: Date.now() };
-      if (real) doc.email = login;
-      if (g.mob) doc.mob = g.mob;
-      if (!(await writeVerified('parents/' + uid, doc))) throw new Error('تعذّر الحفظ');
-      if (real) { try { await FB.authM.sendPasswordResetEmail(FB.auth, login); res.mailed++; } catch (e) { res.failed.push({ name: g.name || login, why: 'اتعمل الحساب لكن تعذّر إرسال الرابط' }); } }
-      else res.cards.push({ name: g.name || '', code: shown, pw, kids: g.kids });
-      res.made++;
-    } catch (e) {
+  for (const k of P.items) {
+    n++; onProgress(n, P.items.length);
+    try { res.cards.push(await createPair(k, k.pname, k.mob)); res.made++; }
+    catch (e) {
       const c = e && e.code;
-      res.failed.push({ name: g.name || (g.kids[0] && g.kids[0].sname) || '؟', why: c === 'auth/email-already-in-use' ? 'الإيميل مستخدم قبل كده' : (c && c.startsWith('auth/') ? authErr(e) : (e.message || 'خطأ')) });
+      res.failed.push({ name: k.sname + ' – ' + k.cname, why: c && c.startsWith('auth/') ? authErr(e) : (e.message || 'خطأ') });
       if (c === 'auth/too-many-requests' || c === 'auth/quota-exceeded') { res.stopped = true; break; }
     }
     await sleep(350);
   }
-  logAudit({ x: 'staff', n: 'استيراد أولياء أمور: ' + res.made + ' حساب جديد' });
+  logAudit({ x: 'staff', n: 'إنشاء حسابات طلاب وأولياء أمور: ' + res.made + ' طالب' });
   return res;
 }
 async function downloadCards(cards) {
-  const head = ['اسم الطالب', 'ولي الأمر', 'الكود', 'كلمة المرور', 'الفصل'];
-  const rows = [];
-  cards.forEach(c => c.kids.forEach(k => rows.push([k.sname, c.name, c.code, c.pw, k.cname])));
+  const head = ['اسم الطالب', 'الفصل', 'ولي الأمر', 'كود الطالب', 'كود ولي الأمر', 'كلمة المرور'];
+  const rows = cards.map(c => [c.sname, c.cname, c.pname, c.scode, c.pcode, c.pw]);
   try {
     await loadExcelJS();
     const wb = new window.ExcelJS.Workbook();
-    const ws = wb.addWorksheet('بطاقات الدخول', { views: [{ rightToLeft: true }] });
+    const ws = wb.addWorksheet('بيانات الدخول', { views: [{ rightToLeft: true }] });
     ws.addRow(head); rows.forEach(r => ws.addRow(r));
     ws.getRow(1).font = { bold: true }; ws.columns.forEach(c => { c.width = 24; });
-    await saveFile('بطاقات دخول أولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
-  } catch (e) { await saveFile('بطاقات دخول أولياء الأمور.csv', csvOf([head].concat(rows))); }
+    await saveFile('بيانات دخول الطلاب وأولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
+  } catch (e) { await saveFile('بيانات دخول الطلاب وأولياء الأمور.csv', csvOf([head].concat(rows))); }
 }
-async function reissueParent(p) {
-  if (!(await confirmBox('إصدار كود وكلمة مرور جديدين لـ «' + p.name + '»؟\nالدخول القديم هيتقفل فورًا.', 'إصدار'))) return;
-  const pw = newParentPw(); let uid = null, login = '';
+async function reissuePair(g) {
+  if (!(await confirmBox('إصدار كود وكلمة مرور جديدين لـ «' + g.sname + '» (الطالب وولي الأمر)؟\nالدخول القديم هيتقفل فورًا.', 'إصدار'))) return;
   try {
-    for (let t = 0; t < 4 && !uid; t++) {
-      login = newParentCode().toLowerCase() + '@' + PDOM;
-      try { uid = await createParentAuth(login, pw); } catch (e) { if (e && e.code === 'auth/email-already-in-use') continue; throw e; }
-    }
-    if (!uid) throw new Error('تعذّر توليد كود');
-    const code = login.split('@')[0].toUpperCase();
-    const doc = { name: p.name, kids: p.kids || [], info: p.info || {}, login: code, t: Date.now() };
-    if (p.mob) doc.mob = p.mob;
-    if (!(await writeVerified('parents/' + uid, doc))) throw new Error('تعذّر الحفظ، الدخول القديم لسه شغال.');
-    await del('parents/' + p.id);
-    logAudit({ x: 'staff', n: 'إعادة إصدار دخول: ' + p.name });
-    const kids = (p.kids || []).map(k => ({ sname: ((p.info || {})[k] || {}).n || '', cname: ((p.info || {})[k] || {}).c || '' }));
-    await downloadCards([{ name: p.name, code, pw, kids }]);
-    toast('تم الإصدار. نزّل الملف واحفظه، كلمة المرور مش هتظهر تاني.');
+    await createPair({ kid: g.kid, sname: g.sname, cname: g.cname }, g.pname);
+    for (const u of [g.sUid, g.pUid]) { if (u) { await del('parents/' + u); await del('creds/' + u); } }
+    logAudit({ x: 'staff', n: 'إعادة إصدار دخول: ' + g.sname });
+    toast('تم الإصدار. البيانات الجديدة ظاهرة في الجدول.');
   } catch (e) { toast((e && e.code && e.code.startsWith('auth/')) ? authErr(e) : (e.message || 'تعذّر الإصدار.'), true); }
+}
+async function deletePair(g) {
+  if (!(await confirmBox('حذف حسابات «' + g.sname + '» (الطالب وولي الأمر)؟ مش هيقدروا يشوفوا أي درجات تاني.', 'حذف'))) return;
+  try {
+    for (const u of [g.sUid, g.pUid]) { if (u) { await del('parents/' + u); await del('creds/' + u); } }
+    logAudit({ x: 'staff', n: 'حذف حسابات: ' + g.sname });
+  } catch (e) { toast(errText(e), true); }
+}
+function groupPairs(items) {
+  const m = new Map();
+  items.forEach(c => {
+    const g = m.get(c.kid) || { kid: c.kid, sname: c.sname, cname: c.cname, pname: c.pname, pw: c.pw };
+    if (c.type === 's') { g.sUid = c.id; g.scode = c.login; } else { g.pUid = c.id; g.pcode = c.login; g.pname = c.pname || g.pname; }
+    g.pw = c.pw || g.pw; m.set(c.kid, g);
+  });
+  return Array.from(m.values()).sort((a, b) => (a.cname || '').localeCompare(b.cname || '', 'ar') || (a.sname || '').localeCompare(b.sname || '', 'ar'));
 }
 async function syncParentData() {
   if (!(await confirmBox('مزامنة درجات أولياء الأمور من الكشوف الحالية؟\nاعملها مرة بعد التفعيل، ولما ترجّع حاجة من السلة.', 'مزامنة'))) return;
@@ -1745,57 +1766,64 @@ async function downloadParentTemplate() {
   try {
     await loadExcelJS();
     const wb = new window.ExcelJS.Workbook();
-    const ws = wb.addWorksheet('أولياء الأمور', { views: [{ rightToLeft: true }] });
-    ws.addRow(['الفصل', 'اسم الطالب', 'اسم ولي الأمر', 'موبايل ولي الأمر', 'إيميل ولي الأمر (اختياري)']);
-    ws.addRow(['SEC 2B', 'أحمد سامي', 'سامي محمود', '01000000000', '']);
-    ws.addRow(['SEC 2B', 'منى خالد', 'خالد إبراهيم', '01111111111', 'parent@example.com']);
+    const ws = wb.addWorksheet('الطلاب', { views: [{ rightToLeft: true }] });
+    ws.addRow(['الفصل', 'اسم الطالب', 'اسم ولي الأمر', 'موبايل ولي الأمر']);
+    ws.addRow(['SEC 2B', 'أحمد سامي', 'سامي محمود', '01000000000']);
+    ws.addRow(['SEC 2B', 'منى خالد', 'خالد إبراهيم', '01111111111']);
     ws.getRow(1).font = { bold: true }; ws.columns.forEach(c => { c.width = 26; });
-    await saveFile('نموذج أولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
+    await saveFile('نموذج الطلاب وأولياء الأمور.xlsx', await wb.xlsx.writeBuffer());
   } catch (e) { toast('تعذّر تجهيز النموذج.', true); }
 }
 
 function pageParents() {
-  const wrap = h('div', {}, h('h1', { class: 'page', text: 'أولياء الأمور' }),
-    h('p', { class: 'lead', text: 'ارفع شيت فيه الفصل واسم الطالب واسم ولي الأمر، ولكل ولي أمر حساب يشوف درجات أبنائه بس.' }));
-  if (!S.fb) { wrap.append(h('div', { class: 'banner err', text: 'حسابات أولياء الأمور بتشتغل مع Firebase بس، مش الوضع المحلي.' })); return wrap; }
+  const wrap = h('div', {}, h('h1', { class: 'page', text: 'حسابات الطلاب وأولياء الأمور' }),
+    h('p', { class: 'lead', text: 'كل طالب ليه حساب بكود وكلمة مرور. وولي أمره بيدخل بنفس الكود ونفس الكلمة، بس بيبدأ بـ p- (مثال: S3K9Q للطالب، و p-S3K9Q لولي الأمر).' }));
+  if (!S.fb) { wrap.append(h('div', { class: 'banner err', text: 'الحسابات بتشتغل مع Firebase بس، مش الوضع المحلي.' })); return wrap; }
   const file = h('input', { type: 'file', accept: '.xlsx,.csv', multiple: true, id: 'parentFile' });
+  const search = h('input', { type: 'search', placeholder: 'ابحث بالاسم أو الفصل أو الكود', style: 'max-width:340px' });
   const out = h('div'), list = h('div'), status = h('div', { class: 'status', role: 'status' });
-  let plan = null, busy = false;
+  let plan = null, busy = false, all = [], shown = [];
+  const existing = async () => (await db.collection('parents').get()).docs.map(d => d.data());
   wrap.append(h('div', { class: 'card' },
-    h('p', { class: 'note', text: 'الأعمدة: الفصل | اسم الطالب | اسم ولي الأمر | موبايل ولي الأمر | إيميل (اختياري). الطالب بيتلاقى بالفصل والاسم، فلازم يكون مضاف قبل كده. الأخوات بيتجمّعوا في حساب واحد لو الموبايل (أو الإيميل) متطابق. اللي معاه إيميل بيوصله رابط يحط منه كلمته بنفسه، واللي مالوش إيميل بياخد كود وكلمة مرور عشوائيين في ملف يتطبع.' }),
+    h('p', { class: 'note', text: 'ممكن تنشئ الحسابات من ملف (الفصل | اسم الطالب | اسم ولي الأمر | موبايل ولي الأمر) أو لكل الطلاب اللي من غير حساب مرة واحدة. الطالب بيتلاقى بالفصل والاسم، فلازم يكون مضاف قبل كده. بيانات الدخول بتتحفظ وتفضل ظاهرة لك في الجدول تحت، ومش لازم تنزّلها.' }),
     h('div', { class: 'form-row' }, h('label', { class: 'f' }, 'ملف أو أكتر', file),
-      h('button', { class: 'btn primary', type: 'button', text: 'معاينة', onclick: async () => {
+      h('button', { class: 'btn primary', type: 'button', text: 'معاينة الملف', onclick: async () => {
         if (!file.files.length) { toast('اختر ملف الأول.', true); return; }
         out.innerHTML = '';
         try {
           let sheets = [];
           for (const f of file.files) sheets = sheets.concat(await readSheets(f));
-          const ex = (await db.collection('parents').get()).docs.map(d => Object.assign({ id: d.id }, d.data()));
-          plan = buildParentPlan(sheets, ex); drawPlan();
+          plan = buildParentPlan(sheets, await existing()); drawPlan();
         } catch (e) { toast(e.message || 'تعذّرت قراءة الملف.', true); }
       } }),
       h('button', { class: 'btn', type: 'button', text: 'تنزيل نموذج', onclick: downloadParentTemplate }),
-      h('button', { class: 'btn', type: 'button', text: 'مزامنة درجات الأولياء', onclick: syncParentData }))),
-    status, out, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }), list);
+      h('button', { class: 'btn', type: 'button', text: 'إنشاء لكل الطلاب اللي من غير حساب', onclick: async () => {
+        out.innerHTML = '';
+        try { plan = buildAllPlan(await existing()); drawPlan(); } catch (e) { toast(errText(e), true); }
+      } }),
+      h('button', { class: 'btn', type: 'button', text: 'مزامنة الدرجات', onclick: syncParentData }))),
+    status, out, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }),
+    h('div', { class: 'form-row' }, search,
+      h('button', { class: 'btn', type: 'button', text: 'تنزيل المعروض', onclick: () => {
+        if (!shown.length) { toast('مفيش حاجة للتنزيل.', true); return; }
+        downloadCards(shown.map(g => ({ sname: g.sname, cname: g.cname, pname: g.pname, scode: g.scode || '', pcode: g.pcode || '', pw: g.pw || '' })));
+      } })),
+    list);
 
   function drawPlan() {
     out.innerHTML = '';
-    const P = plan, fresh = P.groups.filter(g => !g.existing);
-    const kids = P.groups.reduce((n, g) => n + g.kids.length, 0);
+    const P = plan, n = P.items.length;
     out.append(h('div', { class: 'strip' },
-      h('div', {}, h('b', { text: fresh.length }), h('span', { text: 'حسابات جديدة' })),
-      h('div', {}, h('b', { text: fresh.filter(g => g.email).length }), h('span', { text: 'بإيميل' })),
-      h('div', {}, h('b', { text: fresh.filter(g => !g.email).length }), h('span', { text: 'بكود' })),
-      h('div', {}, h('b', { text: kids }), h('span', { text: 'طلاب هيتربطوا' }))));
+      h('div', {}, h('b', { text: n }), h('span', { text: 'طلاب جداد' })),
+      h('div', {}, h('b', { text: n * 2 }), h('span', { text: 'حسابات هتتعمل' }))));
     P.warnings.forEach(w => out.append(h('div', { class: 'banner warn', text: w })));
-    if (!P.groups.length) return;
+    if (!n) { out.append(h('div', { class: 'empty', text: 'مفيش طلاب جداد محتاجين حسابات.' })); return; }
     out.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-      h('thead', {}, h('tr', {}, h('th', { text: 'ولي الأمر' }), h('th', { text: 'الأبناء' }), h('th', { text: 'الدخول' }))),
-      h('tbody', {}, P.groups.slice(0, 150).map(g => h('tr', {}, h('td', { text: g.name || '—' }), h('td', { text: g.kids.map(k => k.sname + ' (' + k.cname + ')').join('، ') }),
-        h('td', { text: g.existing ? 'يضاف لحساب موجود' : g.email ? 'إيميل: ' + g.email : 'كود وكلمة مرور' })))))));
+      h('thead', {}, h('tr', {}, h('th', { text: 'الطالب' }), h('th', { text: 'الفصل' }), h('th', { text: 'ولي الأمر' }))),
+      h('tbody', {}, P.items.slice(0, 150).map(k => h('tr', {}, h('td', { text: k.sname }), h('td', { text: k.cname }), h('td', { text: k.pname || '—' })))))));
     out.append(h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحسابات', onclick: async e => {
       if (busy) return;
-      if (!(await confirmBox('هيتعمل ' + fresh.length + ' حساب.\nالكود وكلمة المرور بيظهروا مرة واحدة بس في ملف بعد التنفيذ، ومش بيتخزنوا.', 'تنفيذ'))) return;
+      if (!(await confirmBox('هيتعمل ' + n * 2 + ' حساب (طالب وولي أمر لكل طالب).\nالبيانات هتفضل ظاهرة لك في الجدول.', 'تنفيذ'))) return;
       busy = true; e.target.disabled = true;
       const res = await runParentPlan(plan, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
       busy = false; plan = null; file.value = ''; status.textContent = ''; drawResult(res);
@@ -1803,29 +1831,37 @@ function pageParents() {
   }
   function drawResult(res) {
     out.innerHTML = '';
-    out.append(h('div', { class: 'banner ok', text: 'تم: ' + res.made + ' حساب جديد' + (res.mailed ? ' (' + res.mailed + ' اتبعتلهم رابط على الإيميل)' : '') + (res.added ? '، وإضافة ' + res.added + ' طالب لحسابات موجودة' : '') + '.' }));
-    if (res.stopped) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء مؤقتًا بسبب كتر الطلبات. شغّل نفس الملف تاني بعد ساعة وهيكمل من حيث وقف.' }));
+    out.append(h('div', { class: 'banner ok', text: 'تم إنشاء حسابات ' + res.made + ' طالب (وأولياء أمورهم). البيانات ظاهرة في الجدول تحت.' }));
+    if (res.stopped) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء مؤقتًا بسبب كتر الطلبات. اضغط «إنشاء لكل الطلاب اللي من غير حساب» تاني بعد ساعة وهيكمل من حيث وقف.' }));
     res.failed.forEach(f => out.append(h('div', { class: 'banner err', text: f.name + ': ' + f.why })));
-    if (res.cards.length) out.append(h('div', { class: 'banner warn', text: 'نزّل ملف بطاقات الدخول دلوقتي واحفظه. كلمات المرور مش هتظهر تاني، ولو ضاعت استخدم «إعادة إصدار الدخول».' }),
-      h('button', { class: 'btn primary', type: 'button', text: 'تنزيل بطاقات الدخول (' + res.cards.reduce((n, c) => n + c.kids.length, 0) + ')', onclick: () => downloadCards(res.cards) }));
+    if (res.cards.length) out.append(h('button', { class: 'btn', type: 'button', text: 'تنزيل ملف اللي اتعمل دلوقتي (' + res.cards.length + ')', onclick: () => downloadCards(res.cards) }));
   }
-  auditUnsub = db.collection('parents').onSnapshot(snap => {
-    const items = snap.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+  const pwCell = g => {
+    const sp = h('span', { dir: 'ltr', text: '••••••••' }); let on = false;
+    return h('td', {}, sp, ' ', h('button', { class: 'btn small', type: 'button', text: 'إظهار', onclick: e => {
+      on = !on; sp.textContent = on ? (g.pw || '—') : '••••••••'; e.target.textContent = on ? 'إخفاء' : 'إظهار';
+    } }));
+  };
+  const draw = () => {
+    const q = normAr(search.value);
+    shown = all.filter(g => !q || normAr([g.sname, g.cname, g.pname, g.scode, g.pcode].join(' ')).includes(q));
     list.innerHTML = '';
-    if (!items.length) { list.append(h('div', { class: 'empty', text: 'لسه مفيش حسابات أولياء أمور.' })); return; }
+    if (!all.length) { list.append(h('div', { class: 'empty', text: 'لسه مفيش حسابات.' })); return; }
+    if (!shown.length) { list.append(h('div', { class: 'empty', text: 'مفيش نتائج.' })); return; }
     list.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-      h('thead', {}, h('tr', {}, h('th', { text: 'ولي الأمر' }), h('th', { text: 'الدخول' }), h('th', { text: 'الأبناء' }), h('th'))),
-      h('tbody', {}, items.map(p => h('tr', {},
-        h('td', {}, h('strong', { text: p.name || '—' })),
-        h('td', { dir: 'ltr', style: 'text-align:right', text: p.email || p.login || '' }),
-        h('td', { text: (p.kids || []).map(k => { const i = (p.info || {})[k] || {}; return (i.n || 'طالب') + (i.c ? ' (' + i.c + ')' : ''); }).join('، ') }),
+      h('thead', {}, h('tr', {}, h('th', { text: 'الطالب' }), h('th', { text: 'الفصل' }), h('th', { text: 'ولي الأمر' }), h('th', { text: 'كود الطالب' }), h('th', { text: 'كود ولي الأمر' }), h('th', { text: 'كلمة المرور' }), h('th'))),
+      h('tbody', {}, shown.slice(0, 300).map(g => h('tr', {},
+        h('td', {}, h('strong', { text: g.sname || '—' })), h('td', { text: g.cname || '' }), h('td', { text: g.pname || '—' }),
+        h('td', { dir: 'ltr', style: 'text-align:right', text: g.scode || '—' }), h('td', { dir: 'ltr', style: 'text-align:right', text: g.pcode || '—' }),
+        pwCell(g),
         h('td', { class: 'row-actions' },
-          p.email ? h('button', { class: 'btn small', type: 'button', text: 'إرسال رابط كلمة المرور', onclick: async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, p.email); toast('تم إرسال الرابط.'); } catch (e) { toast(authErr(e), true); } } })
-                  : h('button', { class: 'btn small', type: 'button', text: 'إعادة إصدار الدخول', onclick: () => reissueParent(p) }),
-          h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: async () => {
-            if (!(await confirmBox('حذف حساب «' + p.name + '»؟ مش هيقدر يشوف أي درجات تاني.', 'حذف'))) return;
-            await del('parents/' + p.id); logAudit({ x: 'staff', n: 'حذف حساب ولي أمر: ' + p.name });
-          } }))))))));
+          h('button', { class: 'btn small', type: 'button', text: 'إعادة إصدار', onclick: () => reissuePair(g) }),
+          h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: () => deletePair(g) }))))))));
+    if (shown.length > 300) list.append(h('p', { class: 'note', text: 'معروض أول 300 بس. استخدم البحث أو «تنزيل المعروض».' }));
+  };
+  search.addEventListener('input', draw);
+  auditUnsub = db.collection('creds').onSnapshot(snap => {
+    all = groupPairs(snap.docs.map(d => Object.assign({ id: d.id }, d.data()))); draw();
   }, e => { list.innerHTML = ''; list.append(h('div', { class: 'banner err', text: errText(e) })); });
   return wrap;
 }
@@ -1869,7 +1905,7 @@ function changeMyPassword() {
 }
 function pageParentHome() {
   const wrap = h('div'), P = S.parentDoc;
-  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: 'درجات أبنائي' }),
+  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: (P && P.type === 's') ? 'درجاتي' : 'درجات أبنائي' }),
     h('p', { class: 'lead', text: S.cfg ? ((S.cfg.term || '') + (S.cfg.year ? ' – العام الدراسي ' + S.cfg.year : '')) : '' }));
   hero.insertAdjacentHTML('beforeend', DOODLE); wrap.append(hero);
   if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'حسابك مش مفعّل أو اتقفل. تواصل مع المدرسة.' })); return wrap; }
