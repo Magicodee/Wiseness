@@ -1809,7 +1809,6 @@ function pageParents() {
   const out = h('div'), list = h('div'), status = h('div', { class: 'status', role: 'status' });
   let plan = null, busy = false, all = [], shown = [];
   const sel = new Set();
-  const limIn = h('input', { type: 'number', min: 1, max: 50, value: 45, style: 'width:90px', id: 'batchLim' });
   const delBtn = h('button', { class: 'btn danger', type: 'button', text: 'حذف المحدد (0)', onclick: () => { const gs = all.filter(g => sel.has(g.kid)); if (!gs.length) { toast('حدّد طلاب الأول.', true); return; } deletePairs(gs, (d, t) => { status.textContent = 'جارٍ الحذف… ' + d + ' من ' + t; }).then(() => { status.textContent = ''; }); } });
   const upd = () => { delBtn.textContent = 'حذف المحدد (' + sel.size + ')'; };
   const existing = async () => (await db.collection('parents').get()).docs.map(d => d.data());
@@ -1830,9 +1829,7 @@ function pageParents() {
         out.innerHTML = '';
         try { plan = buildAllPlan(await existing()); drawPlan(); } catch (e) { toast(errText(e), true); }
       } }),
-      h('label', { class: 'f' }, 'أقصى عدد طلاب في الدفعة', limIn),
       h('button', { class: 'btn', type: 'button', text: 'مزامنة الدرجات', onclick: syncParentData }))),
-    h('p', { class: 'note', text: 'Firebase بيسمح بحوالي 100 حساب في الساعة لكل اتصال إنترنت، وكل طالب حسابين، فخلّي الدفعة 45 طالب أو أقل. بعد الدفعة كمّل بنفس الزرار وهيبدأ من أول طالب لسه ماخدش حساب.' }),
     status, out, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }),
     h('div', { class: 'form-row' }, search, delBtn,
       h('button', { class: 'btn', type: 'button', text: 'تنزيل المعروض', onclick: () => {
@@ -1854,16 +1851,15 @@ function pageParents() {
       h('tbody', {}, P.items.slice(0, 150).map(k => h('tr', {}, h('td', { text: k.sname }), h('td', { text: k.cname }), h('td', { text: k.pname || '—' })))))));
     out.append(h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحسابات', onclick: async e => {
       if (busy) return;
-      const lim = Math.max(1, Math.min(50, parseInt(limIn.value, 10) || 45)), batch = { items: plan.items.slice(0, lim), warnings: [] }, left = n - batch.items.length;
-      if (!(await confirmBox('هيتعمل ' + batch.items.length * 2 + ' حساب (طالب وولي أمر لكل طالب)' + (left ? '، وفاضل ' + left + ' طالب للدفعة الجاية.' : '.') + '\nالبيانات هتفضل ظاهرة لك في الجدول.', 'تنفيذ'))) return;
+      if (!(await confirmBox('هيتعمل ' + n * 2 + ' حساب (طالب وولي أمر لكل طالب).\nالبيانات هتفضل ظاهرة لك في الجدول.', 'تنفيذ'))) return;
       busy = true; e.target.disabled = true;
-      const res = await runParentPlan(batch, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
+      const res = await runParentPlan(plan, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
       busy = false; plan = null; file.value = ''; status.textContent = ''; drawResult(res);
     } })));
   }
   function drawResult(res) {
     out.innerHTML = '';
-    out.append(h('div', { class: 'banner ok', text: 'تم إنشاء حسابات ' + res.made + ' طالب (وأولياء أمورهم). البيانات ظاهرة في الجدول تحت. لو فاضل طلاب، استنى ساعة أو غيّر الإنترنت (مثلًا هوت سبوت الموبايل) واضغط «إنشاء لكل الطلاب اللي من غير حساب» تاني.' }));
+    out.append(h('div', { class: 'banner ok', text: 'تم إنشاء حسابات ' + res.made + ' طالب (وأولياء أمورهم). البيانات ظاهرة في الجدول تحت.' }));
     if (res.stopped) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء مؤقتًا بسبب كتر الطلبات. اضغط «إنشاء لكل الطلاب اللي من غير حساب» تاني بعد ساعة وهيكمل من حيث وقف.' }));
     res.failed.forEach(f => out.append(h('div', { class: 'banner err', text: f.name + ': ' + f.why })));
     if (res.cards.length) out.append(h('button', { class: 'btn', type: 'button', text: 'تنزيل ملف اللي اتعمل دلوقتي (' + res.cards.length + ')', onclick: () => downloadCards(res.cards) }));
