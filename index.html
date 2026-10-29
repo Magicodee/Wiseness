@@ -66,7 +66,8 @@
   .tabs button { flex: none; background: none; border: 0; border-bottom: 3px solid transparent; font: inherit; font-size: .95rem; font-weight: 700; color: var(--text); padding: 14px 14px 11px; cursor: pointer; white-space: nowrap; }
   .tabs button:hover { color: var(--blue); }
   .tabs button.on { color: var(--blue); border-bottom-color: var(--blue); }
-  .chip { text-align: end; font-size: .85rem; line-height: 1.35; flex: none; }
+  .chip { text-align: end; font-size: .85rem; line-height: 1.35; flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+  #themeBtn { margin-inline-start: auto; font-size: 1.15rem; line-height: 1; padding: 6px 10px; }
   .chip b { display: block; color: var(--text); font-weight: 700; }
   .chip span { color: var(--muted); font-size: .78rem; }
   :root[data-theme="dark"] .brand-name { color: var(--text); }
@@ -233,19 +234,19 @@
     <div><div class="brand-name" id="schoolName">نظام رصد الدرجات</div><div class="brand-sub" id="termLine"></div></div>
   </div>
   <nav class="tabs" id="tabs" aria-label="التنقل" hidden></nav>
-  <button class="btn small" id="themeBtn" type="button" aria-label="تبديل الوضع الفاتح/الداكن"></button>
+  <button class="btn small" id="themeBtn" type="button" aria-label="Light / Dark mode" title="Light / Dark mode"></button>
   <div class="chip" id="meChip"></div>
 </header>
 <script>
 (function () {
   var root = document.documentElement, btn = document.getElementById('themeBtn');
   function cur() { var t = root.getAttribute('data-theme'); return t || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
-  function paint() { btn.textContent = cur() === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'; }
+  function paint() { btn.textContent = cur() === 'dark' ? '☀️' : '🌙'; btn.title = cur() === 'dark' ? 'Light mode' : 'Dark mode'; }
   btn.addEventListener('click', function () { var n = cur() === 'dark' ? 'light' : 'dark'; root.setAttribute('data-theme', n); try { localStorage.setItem('theme', n); } catch (e) {} paint(); });
   paint();
 })();
 </script>
-<main id="view"><div class="empty">جارٍ التحميل…</div></main>
+<main id="view"><div class="empty">جارٍ التحميل… / Loading…</div></main>
 <div id="toast" aria-live="polite"></div>
 <div id="modal"></div>
 
@@ -388,6 +389,17 @@ function role() {
 const isStaff = () => role() === 'control';
 const isAdmin = () => role() === 'control';
 const isViewer = () => role() === 'admin';
+// واجهة الطلاب وأولياء الأمور بالإنجليزي البسيط، وباقي الحسابات عربي
+const T = (ar, en) => (S.parentMode ? en : ar);
+const EN_WORDS = [['الفصل الدراسي الأول', 'First term'], ['الفصل الدراسي الثاني', 'Second term'], ['الترم الأول', 'First term'], ['الترم الثاني', 'Second term'],
+  ['واجب ومواظبة', 'Homework & attendance'], ['اللغة العربية', 'Arabic'], ['اللغة الإنجليزية', 'English'], ['اللغة الانجليزية', 'English'], ['اللغة الفرنسية', 'French'], ['اللغة الألمانية', 'German'],
+  ['الدراسات الاجتماعية', 'Social Studies'], ['التربية الدينية', 'Religion'], ['التربية الفنية', 'Art'], ['التربية الرياضية', 'PE'], ['الحاسب الآلي', 'Computer'], ['الكمبيوتر', 'Computer'],
+  ['الرياضيات', 'Math'], ['العلوم', 'Science'], ['الدراسات', 'Social Studies'], ['الموسيقى', 'Music'], ['إنجليزي', 'English'], ['انجليزي', 'English'], ['عربي', 'Arabic'],
+  ['اختبار', 'Exam'], ['أسبوع', 'Week'], ['كراسة', 'Notebook'], ['سلوك', 'Behavior'],
+  ['يناير', 'January'], ['فبراير', 'February'], ['مارس', 'March'], ['أبريل', 'April'], ['ابريل', 'April'], ['مايو', 'May'], ['يونيو', 'June'], ['يوليو', 'July'],
+  ['أغسطس', 'August'], ['اغسطس', 'August'], ['سبتمبر', 'September'], ['أكتوبر', 'October'], ['اكتوبر', 'October'], ['نوفمبر', 'November'], ['ديسمبر', 'December']]
+  .sort((a, b) => b[0].length - a[0].length);
+const en = x => { if (!S.parentMode) return x; let r = String(x == null ? '' : x); EN_WORDS.forEach(([a, b]) => { r = r.split(a).join(b); }); return r; };
 const classesSorted = () => Object.entries(S.classes).map(([id, c]) => ({ id, ...c })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
 const subjectName = id => (S.subjects.find(s => s.id === id) || {}).name || '؟';
 const className = id => (S.classes[id] || {}).name || '؟';
@@ -721,16 +733,16 @@ document.addEventListener('focusout', () => {
 
 function header() {
   $('#schoolName').textContent = S.cfg ? schoolName() : 'نظام رصد الدرجات';
-  $('#termLine').textContent = S.cfg ? ((S.cfg.term || '') + (S.cfg.year ? ' – ' + S.cfg.year : '')) : '';
+  $('#termLine').textContent = S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – ' + S.cfg.year : '')) : '';
   document.title = S.cfg ? schoolName() : 'نظام رصد الدرجات';
   const chip = $('#meChip'); chip.innerHTML = '';
   if (S.me) {
     const nm = S.me.name || nameOf(S.me.id) || 'مستخدم';
-    const rl = { admin: 'مراقبة النظام', control: 'إدارة النظام-كنترول', teacher: 'معلم', parent: (S.parentDoc && S.parentDoc.type === 's') ? 'طالب' : 'ولي أمر' }[role()] || 'غير مفعّل';
+    const rl = { admin: 'مراقبة النظام', control: 'إدارة النظام-كنترول', teacher: 'معلم', parent: (S.parentDoc && S.parentDoc.type === 's') ? 'Student' : 'Parent' }[role()] || 'غير مفعّل';
     chip.append(h('b', { text: nm }), h('span', { text: rl }));
     if (S.fb) chip.append(h('div', { class: 'acts', style: 'justify-content:flex-end;margin-top:4px' },
       S.parentMode ? null : h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: S.parentMode ? changeMyPassword : async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
-      h('button', { class: 'btn small', type: 'button', text: 'خروج', onclick: fbLogout })));
+      h('button', { class: 'btn small', type: 'button', text: T('خروج', 'Log out'), onclick: fbLogout })));
   }
   const tabs = $('#tabs'); tabs.innerHTML = '';
   const items = [];
@@ -752,7 +764,7 @@ function renderAll() {
   if (auditUnsub) { auditUnsub(); auditUnsub = null; }
   const v = $('#view'); v.innerHTML = '';
   if (S.fatal) { v.append(h('div', { class: 'banner err', text: S.fatal })); return; }
-  if (!ready()) { v.append(h('div', { class: 'empty', text: 'جارٍ التحميل…' })); return; }
+  if (!ready()) { v.append(h('div', { class: 'empty', text: T('جارٍ التحميل…', 'Loading…') })); return; }
   if (!S.me || !S.me.id) {
     v.append(h('div', { class: 'banner err', text: 'لا يمكن التعرف على حسابك. افتح الصفحة من claude.ai بحسابك المدعو.' })); return; }
   if (S.parentMode) { v.append(pageParentHome()); return; }
@@ -1934,7 +1946,7 @@ function pageParents() {
 /* ---------- جهة ولي الأمر ---------- */
 function parentErr(e) {
   if (e && e.code === 'permission-denied') S.revoked = true;
-  else if (!S.fatal) S.fatal = 'تعذّر الاتصال بقاعدة البيانات. حدّث الصفحة.';
+  else if (!S.fatal) S.fatal = 'Could not connect to the database. Please refresh the page.';
   refresh();
 }
 function subscribeParent() {
@@ -1969,37 +1981,37 @@ function changeMyPassword() {
   m.classList.add('show'); pw.focus();
 }
 function pageParentHome() {
-  const wrap = h('div'), P = S.parentDoc;
-  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: (P && P.type === 's') ? 'درجاتي' : 'درجات أبنائي' }),
-    h('p', { class: 'lead', text: S.cfg ? ((S.cfg.term || '') + (S.cfg.year ? ' – العام الدراسي ' + S.cfg.year : '')) : '' }));
+  const wrap = h('div'), P = S.parentDoc, sn = id => en(subjectName(id));
+  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: (P && P.type === 's') ? 'My grades' : "My child's grades" }),
+    h('p', { class: 'lead', text: S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – Academic year ' + S.cfg.year : '')) : '' }));
   hero.insertAdjacentHTML('beforeend', DOODLE); wrap.append(hero);
-  if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'حسابك مش مفعّل أو اتقفل. تواصل مع المدرسة.' })); return wrap; }
-  if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'النظام لم يُجهّز بعد.' })); return wrap; }
+  if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'Your account is not active or has been closed. Please contact the school.' })); return wrap; }
+  if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'The system is not set up yet.' })); return wrap; }
   const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [];
-  if (!kids.length) { wrap.append(h('div', { class: 'empty', text: 'مفيش أبناء مربوطين بحسابك. تواصل مع المدرسة.' })); return wrap; }
+  if (!kids.length) { wrap.append(h('div', { class: 'empty', text: 'No student is linked to your account. Please contact the school.' })); return wrap; }
   kids.forEach(kid => {
     const info = (P.info || {})[kid] || {};
     const rows = ((S.pg || {})[kid] || []).filter(d => S.subjects.some(s => s.id === d.sid))
-      .sort((a, b) => subjectName(a.sid).localeCompare(subjectName(b.sid), 'ar'))
+      .sort((a, b) => sn(a.sid).localeCompare(sn(b.sid), 'en'))
       .map(d => { const vals = {}; Object.keys(d.v || {}).forEach(k => { if (typeof d.v[k] === 'number') vals[k] = d.v[k]; }); return { d, vals, c: compute(Sx, vals) }; });
-    const card = h('div', { class: 'card' }, h('h2', { text: (info.n || 'طالب') + (info.c ? ' – ' + info.c : '') }));
-    if (!rows.length) card.append(h('div', { class: 'empty', text: 'لسه مفيش درجات مرصودة.' }));
+    const card = h('div', { class: 'card' }, h('h2', {}, h('span', { dir: 'auto', text: info.n || 'Student' }), info.c ? ' – ' : '', info.c ? h('span', { dir: 'auto', text: info.c }) : ''));
+    if (!rows.length) card.append(h('div', { class: 'empty', text: 'No grades have been recorded yet.' }));
     else {
       card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-        h('thead', {}, h('tr', {}, h('th', { text: 'المادة' }),
-          Sx.months.map(m => h('th', { text: m.name + ' (من ' + monthMax(Sx) + ')' })), h('th', { text: 'المتوسط (من ' + avgMax(Sx) + ')' }),
-          Sx.exams.map(e => h('th', { text: e.name + ' (من ' + e.max + ')' })), h('th', { text: 'النهائي (من ' + finalMax(Sx) + ')' }))),
-        h('tbody', {}, rows.map(r => h('tr', {}, h('td', {}, h('strong', { text: subjectName(r.d.sid) })),
+        h('thead', {}, h('tr', {}, h('th', { text: 'Subject' }),
+          Sx.months.map(m => h('th', { text: en(m.name) + ' (out of ' + monthMax(Sx) + ')' })), h('th', { text: 'Average (out of ' + avgMax(Sx) + ')' }),
+          Sx.exams.map(e => h('th', { text: en(e.name) + ' (out of ' + e.max + ')' })), h('th', { text: 'Final (out of ' + finalMax(Sx) + ')' }))),
+        h('tbody', {}, rows.map(r => h('tr', {}, h('td', {}, h('strong', { text: sn(r.d.sid) })),
           r.c.months.map(m => h('td', { text: fmt(m.total) })), h('td', { text: fmt(r.c.avg) }),
           Sx.exams.map(e => h('td', { text: fmt(r.vals['x_' + e.key] === undefined ? null : r.vals['x_' + e.key]) })),
           h('td', {}, h('strong', { text: fmt(r.c.final) }))))))));
-      rows.forEach(r => card.append(h('details', { style: 'margin-top:10px' }, h('summary', { text: 'تفاصيل ' + subjectName(r.d.sid) }),
+      rows.forEach(r => card.append(h('details', { style: 'margin-top:10px' }, h('summary', { text: 'Details: ' + sn(r.d.sid) }),
         h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' }, h('tbody', {}, fields.map(f => h('tr', {},
-          h('td', { text: f.label }), h('td', { text: (r.vals[f.key] === undefined ? '—' : fmt(r.vals[f.key])) + ' / ' + f.max })))))))));
+          h('td', { text: en(f.label) }), h('td', { text: (r.vals[f.key] === undefined ? '—' : fmt(r.vals[f.key])) + ' / ' + f.max })))))))));
     }
     wrap.append(card);
   });
-  wrap.append(h('p', { class: 'note', text: 'الدرجات دي اللي رصدها المعلمون لحد دلوقتي، وبتتحدّث لحظيًا وممكن تتغيّر لحد ما المدرسة تعتمد الكشوف.' }));
+  wrap.append(h('p', { class: 'note', text: 'These are the grades entered by teachers so far. They update live and may change until the school approves the final sheets.' }));
   return wrap;
 }
 
@@ -2276,12 +2288,12 @@ const FIREBASE_CONFIG = {
 const FB_VER = '10.12.2';
 let FB = null;
 const AUTH_ERRORS = {
-  'auth/invalid-credential': 'الإيميل أو كلمة المرور غير صحيحة.', 'auth/wrong-password': 'الإيميل أو كلمة المرور غير صحيحة.',
-  'auth/user-not-found': 'الإيميل أو كلمة المرور غير صحيحة.', 'auth/invalid-email': 'الإيميل غير صالح.',
-  'auth/too-many-requests': 'محاولات كتيرة، استنى شوية وحاول تاني.', 'auth/email-already-in-use': 'الإيميل ده مستخدم قبل كده.',
+  'auth/invalid-credential': 'الإيميل/الكود أو كلمة المرور غير صحيحة. / Wrong email, code or password.', 'auth/wrong-password': 'الإيميل/الكود أو كلمة المرور غير صحيحة. / Wrong email, code or password.',
+  'auth/user-not-found': 'الإيميل/الكود أو كلمة المرور غير صحيحة. / Wrong email, code or password.', 'auth/invalid-email': 'الإيميل غير صالح.',
+  'auth/too-many-requests': 'محاولات كتيرة، استنى شوية وحاول تاني. / Too many attempts, please wait and try again.', 'auth/email-already-in-use': 'الإيميل ده مستخدم قبل كده.',
   'auth/weak-password': 'كلمة المرور ضعيفة (8 حروف على الأقل).', 'auth/missing-password': 'اكتب كلمة المرور.',
   'auth/operation-not-allowed': 'فعّل تسجيل الدخول بالإيميل وكلمة المرور من لوحة Firebase.',
-  'auth/network-request-failed': 'مفيش اتصال بالإنترنت.'
+  'auth/network-request-failed': 'مفيش اتصال بالإنترنت. / No internet connection.'
 };
 const authErr = e => AUTH_ERRORS[e && e.code] || 'حصل خطأ، حاول تاني.';
 
@@ -2345,13 +2357,13 @@ function fbLogin() {
     };
     const reset = async () => {
       msg.hidden = true;
-      if (!email.value.includes('@')) { fail('لو معاك كود من المدرسة: اطلب منها إعادة إصدار الكود.'); return; }
+      if (!email.value.includes('@')) { fail('لو معاك كود من المدرسة: اطلب منها إعادة إصدار الكود. / If you have a school code, ask the school to reissue it.'); return; }
       try { await authM.sendPasswordResetEmail(auth, email.value.trim()); toast('اتبعت رابط إعادة تعيين كلمة المرور على الإيميل.'); } catch (err) { fail(authErr(err)); }
     };
-    v.append(h('div', { class: 'setup' }, h('h1', { text: 'تسجيل الدخول' }),
+    v.append(h('div', { class: 'setup' }, h('h1', { text: 'تسجيل الدخول / Login' }),
       h('form', { class: 'card', onsubmit: login }, msg,
-        h('label', { class: 'f' }, 'الإيميل أو الكود', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'كلمة المرور', pw),
-        h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'submit', text: 'دخول' }), h('button', { class: 'btn', type: 'button', text: 'نسيت كلمة المرور', onclick: reset }))),
+        h('label', { class: 'f' }, 'الإيميل أو الكود / Email or code', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'كلمة المرور / Password', pw),
+        h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'submit', text: 'دخول / Login' }), h('button', { class: 'btn', type: 'button', text: 'نسيت كلمة المرور / Forgot password', onclick: reset }))),
       h('details', { class: 'card' }, h('summary', { text: 'أول استخدام؟ إنشاء حساب الإدارة' }),
         h('p', { class: 'note', text: 'اكتب الإيميل وكلمة المرور فوق، واسمك هنا، وبعدين اضغط إنشاء. أول حساب بيتسجل بيبقى مالك النظام. بقية المستخدمين بتضيفهم من تبويب «المستخدمون».' }),
         h('label', { class: 'f' }, 'اسمك', nm),
@@ -2372,9 +2384,10 @@ async function setupFirebase() {
   try { const ps = await fsM.getDoc(fsM.doc(fs, 'parents/' + uid)); if (ps.exists()) pdoc = ps.data(); } catch (e) { /* مش ولي أمر */ }
   if (pdoc) {
     FB.email = email; db = fbDb(fsM, fs); dlCap = blobDownloader(); S.fb = true; S.parentMode = true;
+    document.documentElement.setAttribute('dir', 'ltr'); document.documentElement.setAttribute('lang', 'en');
     userCap = {
       isOwner: async () => false, canEdit: async () => false, can: async () => false, id: async () => uid,
-      me: async () => ({ id: uid, name: pdoc.name || 'ولي أمر', avatarUrl: 'data:,', isMe: true, isOwner: false, canEdit: false, email }),
+      me: async () => ({ id: uid, name: pdoc.name || 'Parent', avatarUrl: 'data:,', isMe: true, isOwner: false, canEdit: false, email }),
       profiles: async () => ({}), search: async () => []
     };
     return;
