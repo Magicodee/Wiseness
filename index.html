@@ -12,6 +12,22 @@
   :root { color-scheme: light; } :root[data-theme="dark"] { color-scheme: dark; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
   #themeBtn { flex: none; }
+  body.landing .tabwrap, body.landing .chip { display: none; }
+  .lp { max-width: 1080px; margin: 0 auto; padding: 28px 16px 40px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px; align-items: center; min-height: calc(100vh - 180px); }
+  .lp-frame { position: relative; aspect-ratio: 4 / 3; border-radius: 18px; overflow: hidden; background: var(--head); border: 1px solid var(--line); box-shadow: 0 12px 34px rgba(20,18,102,.16); }
+  .lp-frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .9s ease; }
+  .lp-frame img.on { opacity: 1; }
+  .lp-dots { position: absolute; bottom: 12px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; }
+  .lp-dots button { width: 12px; height: 12px; border-radius: 6px; border: 0; padding: 0; cursor: pointer; background: rgba(255,255,255,.6); box-shadow: 0 0 0 1px rgba(0,0,0,.25); transition: width .3s; }
+  .lp-dots button.on { width: 28px; background: #fff; }
+  .lp-side { min-width: 0; }
+  .lp-crest { width: 72px; height: 72px; border-radius: 50%; display: block; margin-bottom: 12px; }
+  .lp-title { font-family: var(--display); font-size: 1.7rem; line-height: 1.25; margin: 0 0 6px; color: var(--ink); }
+  .lp-sub { margin: 0 0 16px; color: var(--muted); }
+  .lp-first { margin-top: 12px; }
+  .lp-first summary { cursor: pointer; font-weight: 600; }
+  @media (max-width: 820px) { .lp { grid-template-columns: 1fr; gap: 22px; min-height: 0; } .lp-title { font-size: 1.4rem; } }
+  @media (prefers-reduced-motion: reduce) { .lp-frame img, .lp-dots button { transition: none; } }
   :root {
     --navy: #141266; --navy-2: #1d1b86; --navy-3: #2b29a0;
     --blue: #0092db; --sky: #3bb7fd; --royal: #0a6bfa; --yellow: #ffd208;
@@ -107,7 +123,7 @@
   .btn.danger { color: var(--bad); border-color: var(--bad); }
   .ml8 { margin-inline-start: 8px; }
   .btn[disabled] { opacity: .5; cursor: not-allowed; }
-  input[type=text], input[type=number], select, textarea, input[type=file], input:not([type]) {
+  input[type=text], input[type=password], input[type=search], input[type=number], select, textarea, input[type=file], input:not([type]) {
     font: inherit; background: var(--card); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 10px; min-width: 0;
   }
   textarea { width: 100%; min-height: 110px; resize: vertical; }
@@ -378,7 +394,12 @@ const S = {
   me: null, isOwner: false, isEditor: false, names: {}, loaded: {}, fatal: null, revoked: false
 };
 let db = null, userCap = null, dlCap = null;
-let route = { name: 'dashboard' };
+// حفظ آخر خطوة: النتائج والمعاينات بتفضل لما تتنقل بين الصفحات، والتبويب بيتفتح تاني بعد التحديث
+const KEEP = { plan: null, imp: null, res: null, busy: false, prog: '', ui: null };
+try { KEEP.res = JSON.parse(sessionStorage.getItem('wls_res') || 'null'); } catch (e) { /* تجاهل */ }
+const ROUTE_OK = ['dashboard', 'classes', 'subjects', 'assign', 'import', 'parents', 'audit', 'trash', 'staff', 'settings'];
+let route = { name: 'dashboard' }, restoredRoute = false;
+try { const r = sessionStorage.getItem('wls_route'); if (ROUTE_OK.includes(r) && r !== 'dashboard') { route = { name: r }; restoredRoute = true; } } catch (e) { /* تجاهل */ }
 
 const DEFAULT_SCHOOL = 'مدرسة ويزنس للغات';
 const OLD_PLACEHOLDER = 'مدرسة الأفق النموذجية للغات';
@@ -717,7 +738,8 @@ let pendingRefresh = false;
 function go(name, params) {
   if (sheetCtl) { sheetCtl.destroy(); sheetCtl = null; }
   if (auditUnsub) { auditUnsub(); auditUnsub = null; }
-  route = Object.assign({ name }, params || {});
+  route = Object.assign({ name }, params || {}); restoredRoute = false;
+  try { sessionStorage.setItem('wls_route', name); } catch (e) { /* تجاهل */ }
   renderAll();
   window.scrollTo(0, 0);
 }
@@ -741,6 +763,7 @@ function header() {
   $('#schoolName').textContent = S.cfg ? schoolName() : 'نظام رصد الدرجات';
   $('#termLine').textContent = S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – ' + S.cfg.year : '')) : '';
   document.title = S.cfg ? schoolName() : 'نظام رصد الدرجات';
+  const spEl = document.querySelector('.strip-top .sp'); if (spEl) spEl.textContent = S.parentMode ? 'Grades Portal' : 'نظام رصد الدرجات';
   const chip = $('#meChip'); chip.innerHTML = '';
   if (S.me) {
     const nm = S.me.name || nameOf(S.me.id) || 'مستخدم';
@@ -805,7 +828,9 @@ function renderAll() {
   const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
   const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', parents: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
 
-  if ((need === 'staff' && !isStaff() && !(route.name === 'audit' && isViewer())) || (need === 'admin' && !isAdmin())) { v.append(h('div', { class: 'banner err', text: 'ليس لديك صلاحية لهذه الصفحة.' })); return; }
+  const denied = (need === 'staff' && !isStaff() && !(route.name === 'audit' && isViewer())) || (need === 'admin' && !isAdmin());
+  if (denied && restoredRoute) { restoredRoute = false; route = { name: 'dashboard' }; renderAll(); return; }
+  if (denied) { v.append(h('div', { class: 'banner err', text: 'ليس لديك صلاحية لهذه الصفحة.' })); return; }
   v.append((pages[route.name] || pageDashboard)());
 }
 
@@ -1568,7 +1593,7 @@ async function downloadImportTemplate() {
 function pageImport() {
   const file = h('input', { type: 'file', accept: '.xlsx,.csv', multiple: true, id: 'importFile' });
   const out = h('div');
-  let plan = null;
+  let plan = KEEP.imp;
   const wrap = h('div', {}, h('h1', { class: 'page', text: 'استيراد من ملف' }),
     h('p', { class: 'lead', text: 'ارفع ملف Excel أو CSV (أو نزّل شيت جوجل بصيغة xlsx/csv) وهيتعمل الفصول والطلاب والمواد وتكليف المعلمين تلقائيًا.' }),
     h('div', { class: 'card' },
@@ -1580,7 +1605,7 @@ function pageImport() {
           try {
             let sheets = [];
             for (const f of file.files) sheets = sheets.concat(await readSheets(f));
-            plan = buildImportPlan(sheets); drawPreview();
+            plan = KEEP.imp = buildImportPlan(sheets); drawPreview();
           } catch (e) { toast(e.message || 'تعذّرت قراءة الملف.', true); }
         } }),
         h('button', { class: 'btn', type: 'button', text: 'تنزيل نموذج', onclick: downloadImportTemplate }))), out);
@@ -1601,9 +1626,10 @@ function pageImport() {
     if (addStu || newCls || P.newSubjects.length || P.asg.length) out.append(h('div', { class: 'acts', style: 'margin-top:14px' },
       h('button', { class: 'btn primary', type: 'button', text: 'تنفيذ الاستيراد', onclick: async () => {
         if (!(await confirmBox('تنفيذ الاستيراد؟ هيتضاف اللي في المعاينة ومفيش حاجة موجودة هتتمسح.', 'تنفيذ'))) return;
-        await applyImportPlan(plan); plan = null; file.value = ''; out.innerHTML = ''; toast('تم الاستيراد.');
+        await applyImportPlan(plan); plan = KEEP.imp = null; file.value = ''; out.innerHTML = ''; toast('تم الاستيراد.');
       } })));
   }
+  if (plan) drawPreview();
   return wrap;
 }
 
@@ -1733,6 +1759,7 @@ async function runParentPlan(P, onProgress) {
   const res = { cards: [], made: 0, failed: [], stopped: false };
   try { await db.doc('creds/_probe').set({ t: Date.now() }); await db.doc('creds/_probe').delete(); }
   catch (e) { res.failed.push({ name: 'قواعد Firestore', why: 'مقدرتش أكتب في creds فمفيش حسابات اتعملت. انشر القاعدة: match /creds/{u} { allow read, write: if isStaff(); } وحدّث الصفحة.' }); return res; }
+  try { const have = linkedKids((await db.collection('parents').get()).docs.map(d => d.data())); P = { items: P.items.filter(k => !have.has(k.kid)), warnings: [] }; } catch (e) { /* تجاهل */ }
   let n = 0;
   for (const k of P.items) {
     n++; onProgress(n, P.items.length);
@@ -1857,7 +1884,7 @@ function pageParents() {
   const out = h('div'), list = h('div'), orphanBox = h('div'), status = h('div', { class: 'status', role: 'status' });
   let parentDocs = [], credIds = new Set(), credsOk = false;
   try { const ls = JSON.parse(localStorage.getItem('wls_stop') || 'null'); if (ls) out.append(h('div', { class: 'banner warn', text: 'آخر إنشاء وقف عند الطالب «' + ls.sname + ' – ' + ls.cname + '» (اتعمل ' + ls.done + ' من ' + ls.total + ' – ' + ls.when + '). كمّل بزر «إنشاء لكل الطلاب اللي من غير حساب».' })); } catch (e) { /* تجاهل */ }
-  let plan = null, busy = false, all = [], shown = [];
+  let plan = KEEP.plan, all = [], shown = [];
   const sel = new Set();
   const delBtn = h('button', { class: 'btn danger', type: 'button', text: 'حذف المحدد (0)', onclick: () => { const gs = all.filter(g => sel.has(g.kid)); if (!gs.length) { toast('حدّد طلاب الأول.', true); return; } deletePairs(gs, (d, t) => { status.textContent = 'جارٍ الحذف… ' + d + ' من ' + t; }).then(() => { status.textContent = ''; }); } });
   const upd = () => { delBtn.textContent = 'حذف المحدد (' + sel.size + ')'; };
@@ -1871,13 +1898,13 @@ function pageParents() {
         try {
           let sheets = [];
           for (const f of file.files) sheets = sheets.concat(await readSheets(f));
-          plan = buildParentPlan(sheets, await existing()); drawPlan();
+          plan = KEEP.plan = buildParentPlan(sheets, await existing()); drawPlan();
         } catch (e) { toast(e.message || 'تعذّرت قراءة الملف.', true); }
       } }),
       h('button', { class: 'btn', type: 'button', text: 'تنزيل نموذج', onclick: downloadParentTemplate }),
       h('button', { class: 'btn', type: 'button', text: 'إنشاء لكل الطلاب اللي من غير حساب', onclick: async () => {
         out.innerHTML = '';
-        try { plan = buildAllPlan(await existing()); drawPlan(); } catch (e) { toast(errText(e), true); }
+        try { plan = KEEP.plan = buildAllPlan(await existing()); drawPlan(); } catch (e) { toast(errText(e), true); }
       } }),
       h('button', { class: 'btn', type: 'button', text: 'مزامنة الدرجات', onclick: syncParentData }))),
     status, out, orphanBox, h('h2', { style: 'margin:18px 0 8px', text: 'الحسابات الحالية' }),
@@ -1900,12 +1927,14 @@ function pageParents() {
       h('thead', {}, h('tr', {}, h('th', { text: 'الطالب' }), h('th', { text: 'الفصل' }), h('th', { text: 'ولي الأمر' }))),
       h('tbody', {}, P.items.slice(0, 150).map(k => h('tr', {}, h('td', { text: k.sname }), h('td', { text: k.cname }), h('td', { text: k.pname || '—' })))))));
     out.append(h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'button', text: 'إنشاء الحسابات', onclick: async e => {
-      if (busy) return;
+      if (KEEP.busy) return;
       const batch = plan;
       if (!(await confirmBox('هيتعمل ' + batch.items.length * 2 + ' حساب (طالب وولي أمر لكل طالب).\nالبيانات هتفضل ظاهرة لك في الجدول.', 'تنفيذ'))) return;
-      busy = true; e.target.disabled = true;
-      const res = await runParentPlan(batch, (d, t) => { status.textContent = 'جارٍ الإنشاء… ' + d + ' من ' + t; });
-      busy = false; plan = null; file.value = ''; status.textContent = ''; drawResult(res);
+      KEEP.busy = true; e.target.disabled = true;
+      const res = await runParentPlan(batch, (d, t) => { KEEP.prog = d + ' من ' + t; if (KEEP.ui) KEEP.ui.status.textContent = 'جارٍ الإنشاء… ' + KEEP.prog; });
+      KEEP.busy = false; KEEP.plan = plan = null; KEEP.res = res;
+      try { sessionStorage.setItem('wls_res', JSON.stringify(res)); } catch (x) { /* تجاهل */ }
+      if (KEEP.ui) { KEEP.ui.status.textContent = ''; KEEP.ui.drawResult(res); }
     } })));
   }
   function drawResult(res) {
@@ -1913,6 +1942,7 @@ function pageParents() {
     if (res.made) out.append(h('div', { class: 'banner ok', text: 'تم إنشاء حسابات ' + res.made + ' طالب (وأولياء أمورهم). البيانات ظاهرة في الجدول تحت. لو فاضل طلاب، استنى ساعة أو غيّر الإنترنت (مثلًا هوت سبوت الموبايل) واضغط «إنشاء لكل الطلاب اللي من غير حساب» تاني.' }));
     if (res.stoppedAt) out.append(h('div', { class: 'banner warn', text: 'Firebase وقّف الإنشاء عند الطالب «' + res.stoppedAt.sname + ' – ' + res.stoppedAt.cname + '» (اتعمل ' + res.stoppedAt.done + ' من ' + res.stoppedAt.total + '). اللي اتعمل اتسجّل وظاهر تحت. استنى ساعة أو غيّر الإنترنت، وبعدين اضغط «إنشاء لكل الطلاب اللي من غير حساب» وهيكمل من الطالب ده.' }));
     res.failed.forEach(f => out.append(h('div', { class: 'banner err', text: f.name + ': ' + f.why })));
+    out.append(h('button', { class: 'btn small', type: 'button', style: 'margin-bottom:10px', text: 'إخفاء النتيجة', onclick: () => { KEEP.res = null; try { sessionStorage.removeItem('wls_res'); } catch (x) { /* تجاهل */ } out.innerHTML = ''; } }));
     if (res.cards.length) {
       out.append(h('button', { class: 'btn', type: 'button', text: 'تنزيل ملف اللي اتعمل دلوقتي (' + res.cards.length + ')', onclick: () => downloadCards(res.cards) }));
       out.append(h('div', { class: 'table-wrap', style: 'margin-top:12px' }, h('table', { class: 'tbl' },
@@ -1968,6 +1998,10 @@ function pageParents() {
   });
   const u2 = db.collection('parents').onSnapshot(snap => { parentDocs = snap.docs.map(d => Object.assign({ id: d.id }, d.data())); drawOrphans(); }, () => {});
   auditUnsub = () => { u1(); u2(); };
+  KEEP.ui = { status, drawResult };
+  if (KEEP.busy) status.textContent = 'جارٍ الإنشاء… ' + KEEP.prog;
+  else if (KEEP.res) drawResult(KEEP.res);
+  else if (plan) drawPlan();
   return wrap;
 }
 
@@ -2324,6 +2358,13 @@ const AUTH_ERRORS = {
   'auth/network-request-failed': 'مفيش اتصال بالإنترنت. / No internet connection.'
 };
 const authErr = e => AUTH_ERRORS[e && e.code] || 'حصل خطأ، حاول تاني.';
+const AUTH_EN = {
+  'auth/invalid-credential': 'Wrong email, code or password.', 'auth/wrong-password': 'Wrong email, code or password.', 'auth/user-not-found': 'Wrong email, code or password.',
+  'auth/invalid-email': 'Invalid email address.', 'auth/too-many-requests': 'Too many attempts. Please wait a while and try again.', 'auth/email-already-in-use': 'This email is already in use.',
+  'auth/weak-password': 'Password is too weak (at least 8 characters).', 'auth/missing-password': 'Please enter your password.',
+  'auth/operation-not-allowed': 'Email/password sign-in is not enabled in Firebase.', 'auth/network-request-failed': 'No internet connection.'
+};
+const authErrEn = e => AUTH_EN[e && e.code] || 'Something went wrong. Please try again.';
 
 function fbDb(fsM, fs) {
   const snap = s => ({ id: s.id, exists: s.exists(), data: () => s.data(), metadata: s.metadata });
@@ -2356,15 +2397,28 @@ function blobDownloader() {
     return { status: 'saved' };
   } };
 }
+// صفحة الاستقبال: سلايد شو خفيف + تسجيل الدخول (إنجليزي)
+const SLIDES = [
+  { src: 'img/slide1.webp', pos: '50% 0%', alt: 'Wiseness Language School logo and main building' },
+  { src: 'img/slide2.webp', pos: '50% 50%', alt: 'School campus with playgrounds, pool and school buses' },
+  { src: 'img/slide3.webp', pos: '50% 50%', alt: 'The school building' },
+  { src: 'img/slide4.webp', pos: '62% 50%', alt: 'Graduation celebration' },
+  { src: 'img/slide5.webp', pos: '50% 30%', alt: 'Graduating students in front of the school' }
+];
 function fbLogin() {
   return new Promise(resolve => {
     const { authM, auth } = FB;
     const v = $('#view'); v.innerHTML = ''; $('#tabs').hidden = true; $('#meChip').innerHTML = '';
-    const email = h('input', { type: 'text', inputmode: 'email', autocomplete: 'username', id: 'loginEmail', dir: 'ltr', autocapitalize: 'none' });
+    document.body.classList.add('landing'); document.documentElement.setAttribute('dir', 'ltr'); document.documentElement.setAttribute('lang', 'en');
+    $('#schoolName').textContent = 'Wiseness Language School'; $('#termLine').textContent = 'Grades Portal';
+    const spEl = document.querySelector('.strip-top .sp'); if (spEl) spEl.textContent = 'Grades Portal';
+    const email = h('input', { type: 'text', inputmode: 'email', autocomplete: 'username', id: 'loginEmail', dir: 'ltr', autocapitalize: 'none', placeholder: 'Email or school code' });
     const pw = h('input', { type: 'password', autocomplete: 'current-password', id: 'loginPw', dir: 'ltr' });
-    const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'اسمك' });
-    const msg = h('div', { class: 'banner err', hidden: true });
+    const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'Your name' });
+    const msg = h('div', { class: 'banner err', hidden: true, role: 'alert' });
     const fail = t => { msg.textContent = t; msg.hidden = false; };
+    let timer = null;
+    const finish = () => { if (timer) clearInterval(timer); document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
     const login = async e => {
       if (e) e.preventDefault(); msg.hidden = true;
       const id = loginId(email.value);
@@ -2375,28 +2429,48 @@ function fbLogin() {
           if (!email.value.includes('@') && up !== pw.value && err && (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password')) await authM.signInWithEmailAndPassword(auth, id, up);
           else throw err;
         }
-        resolve();
-      } catch (err) { fail(authErr(err)); }
+        finish();
+      } catch (err) { fail(authErrEn(err)); }
     };
     const create = async () => {
       msg.hidden = true;
-      if (pw.value.length < 8) { fail('كلمة المرور لازم تكون 8 حروف أو أرقام على الأقل.'); return; }
-      try { FB.pendingName = nm.value.trim(); await authM.createUserWithEmailAndPassword(auth, email.value.trim(), pw.value); resolve(); } catch (err) { fail(authErr(err)); }
+      if (pw.value.length < 8) { fail('Password must be at least 8 characters.'); return; }
+      try { FB.pendingName = nm.value.trim(); await authM.createUserWithEmailAndPassword(auth, email.value.trim(), pw.value); finish(); } catch (err) { fail(authErrEn(err)); }
     };
     const reset = async () => {
       msg.hidden = true;
-      if (!email.value.includes('@')) { fail('لو معاك كود من المدرسة: اطلب منها إعادة إصدار الكود. / If you have a school code, ask the school to reissue it.'); return; }
-      try { await authM.sendPasswordResetEmail(auth, email.value.trim()); toast('اتبعت رابط إعادة تعيين كلمة المرور على الإيميل.'); } catch (err) { fail(authErr(err)); }
+      if (!email.value.includes('@')) { fail('If you use a school code, please ask the school to reissue it. Password reset works with email accounts only.'); return; }
+      try { await authM.sendPasswordResetEmail(auth, email.value.trim()); toast('A password reset link was sent to your email.'); } catch (err) { fail(authErrEn(err)); }
     };
-    v.append(h('div', { class: 'setup' }, h('h1', { text: 'تسجيل الدخول / Login' }),
-      h('form', { class: 'card', onsubmit: login }, msg,
-        h('label', { class: 'f' }, 'الإيميل أو الكود / Email or code', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'كلمة المرور / Password', pw),
-        h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'submit', text: 'دخول / Login' }), h('button', { class: 'btn', type: 'button', text: 'نسيت كلمة المرور / Forgot password', onclick: reset }))),
-      h('details', { class: 'card' }, h('summary', { text: 'أول استخدام؟ إنشاء حساب الإدارة' }),
-        h('p', { class: 'note', text: 'اكتب الإيميل وكلمة المرور فوق، واسمك هنا، وبعدين اضغط إنشاء. أول حساب بيتسجل بيبقى مالك النظام. بقية المستخدمين بتضيفهم من تبويب «المستخدمون».' }),
-        h('label', { class: 'f' }, 'اسمك', nm),
-        h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn', type: 'button', text: 'إنشاء حساب الإدارة', onclick: create })))));
-    email.focus();
+    // السلايد شو: أول صورة بس بتتحمّل فورًا، والباقي بعد ما الصفحة تفتح
+    const imgs = SLIDES.map((sl, i) => h('img', { alt: sl.alt, decoding: 'async', style: 'object-position:' + sl.pos, class: i === 0 ? 'on' : '' }));
+    imgs[0].src = SLIDES[0].src; imgs[0].setAttribute('fetchpriority', 'high');
+    const dots = SLIDES.map((sl, i) => h('button', { type: 'button', 'aria-label': 'Show photo ' + (i + 1), class: i === 0 ? 'on' : '', onclick: () => { show(i); restart(); } }));
+    let cur = 0;
+    const loadRest = () => imgs.forEach((im, i) => { if (i && !im.src) im.src = SLIDES[i].src; });
+    const show = i => {
+      const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = SLIDES[n].src;
+      imgs[cur].classList.remove('on'); dots[cur].classList.remove('on'); cur = n; imgs[cur].classList.add('on'); dots[cur].classList.add('on');
+    };
+    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 4500); };
+    if (imgs[0].complete) setTimeout(loadRest, 800); else imgs[0].addEventListener('load', () => setTimeout(loadRest, 800), { once: true });
+    setTimeout(loadRest, 4000);
+    restart();
+    const crest = $('#crest');
+    v.append(h('div', { class: 'lp', dir: 'ltr', lang: 'en' },
+      h('div', { class: 'lp-frame' }, imgs, h('div', { class: 'lp-dots' }, dots)),
+      h('div', { class: 'lp-side' },
+        crest ? h('img', { class: 'lp-crest', src: crest.src, alt: 'Wiseness Language School logo' }) : null,
+        h('h1', { class: 'lp-title', text: 'Welcome to Wiseness Language School' }),
+        h('p', { class: 'lp-sub', text: 'Sign in to the grades portal.' }),
+        h('form', { class: 'card', onsubmit: login }, msg,
+          h('label', { class: 'f' }, 'Email or school code', email), h('label', { class: 'f', style: 'margin-top:10px' }, 'Password', pw),
+          h('div', { class: 'acts', style: 'margin-top:14px' }, h('button', { class: 'btn primary', type: 'submit', text: 'Log in' }), h('button', { class: 'btn', type: 'button', text: 'Forgot password?', onclick: reset }))),
+        h('details', { class: 'card lp-first' }, h('summary', { text: 'First time here? Create the admin account' }),
+          h('p', { class: 'note', text: 'Enter your email and password above, type your name here, then press Create. The first account created becomes the system owner. Other users are added by the owner.' }),
+          h('label', { class: 'f' }, 'Your name', nm),
+          h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn', type: 'button', text: 'Create admin account', onclick: create }))))));
+    if (window.innerWidth > 820) email.focus();
   });
 }
 async function setupFirebase() {
