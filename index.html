@@ -2427,9 +2427,9 @@ function blobDownloader() {
 }
 // صفحة الاستقبال: سلايد شو خفيف + تسجيل الدخول (إنجليزي)
 const SLIDES = [
-  { src: 'img/slide2.webp', pos: '50% 55%', alt: 'School campus with playgrounds, pool and school buses' },
-  { src: 'img/slide3.webp', pos: '50% 50%', alt: 'The school building' },
-  { src: 'img/slide4.webp', pos: '60% 50%', alt: 'Graduation celebration at the school' }
+  { src: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328735/IMG_1153_qvpzbx.png', pos: '50% 55%', alt: 'School campus with playgrounds, pool and school buses' },
+  { src: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328741/IMG_1154_ug9syt.png', pos: '50% 50%', alt: 'The school building' },
+  { src: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328736/IMG_1155_hytcpe.png', pos: '60% 50%', alt: 'Graduation celebration at the school' }
 ];
 function fbLogin() {
   return new Promise(resolve => {
@@ -2491,8 +2491,8 @@ function fbLogin() {
       '<div class="lp-feat">' + IC.shield + '<h3>Private and secure</h3><p>Every student and parent has a personal login and sees only their own results.</p></div>' +
       '<div class="lp-feat">' + IC.device + '<h3>Works on any device</h3><p>Designed for phones, tablets and computers, in light and dark mode.</p></div></div>' +
       '<h2>Our school</h2><p class="sub">A look at life on campus.</p>' +
-      '<div class="lp-gal"><figure><img src="img/slide1.webp" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
-      '<figure><img src="img/slide5.webp" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
+      '<div class="lp-gal"><figure><img src="https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328706/IMG_1157_lvlzq6.webp" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
+      '<figure><img src="https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328707/IMG_1156_ey4tvm.webp" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
       '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>';
     const copy = h('div', { class: 'lp-copy' }, h('span', { class: 'lp-eyebrow', text: 'Wiseness Language School' }),
       h('h1', { class: 'lp-title', text: 'Your academic progress, always up to date.' }),
