@@ -97,7 +97,7 @@
     --navy: #141266; --navy-2: #1d1b86; --navy-3: #2b29a0;
     --blue: #0092db; --sky: #3bb7fd; --royal: #0a6bfa; --yellow: #ffd208;
     --bg: #f3f8fd; --card: #ffffff; --line: #dde2ea; --line-strong: #7f8899;
-    --text: #060524; --muted: #5a6585; --ink: #141266; --head: #e6f1fb; --accent: #0a6bfa; --on-accent: #ffffff;
+    --text: #060524; --muted: #5a6585; --ink: #141266; --head: #e6f1fb; --accent: #0092db; --on-accent: #ffffff;
     --hl: #fff36b; --hl-text: #3a3200;
     --ok: #14703f; --ok-bg: #e3f4ea; --ok-line: #a5d8b9;
     --bad: #b3201a; --bad-bg: #fde6e4; --bad-line: #f1b3ae;
@@ -180,9 +180,9 @@
   .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
   /* ---------- عناصر عامة ---------- */
-  .btn { display: inline-block; font: inherit; font-size: .92rem; cursor: pointer; text-align: center; background: var(--card); color: var(--sky); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 14px; }
+  .btn { display: inline-block; font: inherit; font-size: .92rem; cursor: pointer; text-align: center; background: var(--card); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 14px; }
   .btn:hover { background: var(--head); }
-  .btn.primary { background: var(--accent); color: var(--sky); border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .btn.primary:hover { filter: brightness(1.12); }
   .btn.small { padding: 4px 10px; font-size: .84rem; }
   .btn.danger { color: var(--bad); border-color: var(--bad); }
@@ -204,6 +204,8 @@
   .plan-day p, .plan-hw p, .plan-note p { margin: 4px 0 0; white-space: pre-wrap; line-height: 1.7; }
   .plan-sec { margin-bottom: 22px; }
   .plan-over { margin-top: 22px; }
+  .site-foot { text-align: center; padding: 22px 16px 28px; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .site-foot a { color: inherit; text-decoration: none; cursor: pointer; }
   /* لمسات الشكل والحركة */
   .btn, button.btn, select, input, textarea { transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease; }
   .btn:active { transform: translateY(1px); }
@@ -212,7 +214,7 @@
   .card { box-shadow: 0 1px 2px rgba(20,18,102,.05), 0 6px 18px rgba(20,18,102,.05); }
   .tbl tbody tr { transition: background-color .12s ease; }
   .tbl tbody tr:hover { background: color-mix(in srgb, var(--head) 55%, transparent); }
-  .hero { box-shadow: 0 10px 28px rgba(10,107,250,.18); }
+  .hero { box-shadow: 0 10px 28px rgba(0,146,219,.18); }
   html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
   label.f { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
@@ -358,6 +360,7 @@
 })();
 </script>
 <main id="view"><div class="empty">جارٍ التحميل… / Loading…</div></main>
+<footer class="site-foot" dir="ltr">Website designed &amp; developed by <a id="mgLink" href="#" onclick="var u=this.dataset.url;if(u){window.open(u,'_blank','noopener');}return false;" data-url="">MAGICODE</a></footer>
 <div id="toast" aria-live="polite"></div>
 <div id="modal"></div>
 
@@ -490,8 +493,8 @@ const ROUTE_OK = ['dashboard', 'classes', 'subjects', 'assign', 'import', 'paren
 let route = { name: 'dashboard' }, restoredRoute = false;
 try { const r = sessionStorage.getItem('wls_route'); if (ROUTE_OK.includes(r) && r !== 'dashboard') { route = { name: r }; restoredRoute = true; } } catch (e) { /* تجاهل */ }
 
-const DEFAULT_SCHOOL = 'مدرسة ويزنس للغات';
-const OLD_PLACEHOLDER = 'مدرسة الأفق النموذجية للغات';
+const DEFAULT_SCHOOL = 'W.L.S prep&secondary';
+const OLD_PLACEHOLDER = 'W.L.S prep&secondary';
 const schoolName = () => (!S.cfg || !S.cfg.school || S.cfg.school === OLD_PLACEHOLDER) ? DEFAULT_SCHOOL : S.cfg.school;
 const scheme = () => (S.cfg && S.cfg.scheme) || DEFAULT_SCHEME;
 function role() {
@@ -2927,7 +2930,7 @@ function fbLogin() {
       '<h2>Our school</h2><p class="sub">A look at life on campus.</p>' +
       '<div class="lp-gal"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
       '<figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
-      '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span><br><span> WEBSITE DESIGNED & DEVELOPED BY MAGICODE</span</div>';
+      '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>';
     const copy = h('div', { class: 'lp-copy' }, h('span', { class: 'lp-eyebrow', text: 'Wiseness Language School' }),
       h('h1', { class: 'lp-title', text: 'Your academic progress, always up to date.' }),
       h('p', { class: 'lp-lead', text: 'Sign in with your email or the school code you received to follow grades and results, or to manage your classes.' }));
