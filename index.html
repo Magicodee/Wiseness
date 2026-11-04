@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>W.L.S prep&secondary</title>
+<link rel="icon" id="favicon" href="data:,">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js">
@@ -58,6 +59,7 @@
   .lp-shade { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(8,10,45,.92) 0%, rgba(14,16,70,.72) 48%, rgba(14,16,70,.38) 100%); }
   .lp-inner { position: relative; max-width: 1180px; margin: 0 auto; padding: 72px 24px 84px; display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center; min-height: min(680px, calc(100vh - 90px)); }
   .lp-eyebrow { display: inline-block; font-size: .78rem; letter-spacing: .16em; font-weight: 700; text-transform: uppercase; color: var(--yellow); padding-bottom: 8px; border-bottom: 2px solid var(--yellow); margin-bottom: 18px; }
+  .lp-for { font-size: 1rem; font-weight: 600; letter-spacing: .04em; color: rgba(255,255,255,.88); margin: -6px 0 16px; }
   .lp-title { font-family: var(--display); font-size: 2.7rem; line-height: 1.15; font-weight: 800; margin: 0 0 16px; color: #fff; letter-spacing: -.01em; }
   .lp-lead { font-size: 1.08rem; line-height: 1.7; color: rgba(255,255,255,.82); max-width: 34rem; margin: 0 0 22px; }
   .lp-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; color: rgba(255,255,255,.9); font-size: .98rem; }
@@ -494,7 +496,8 @@ let route = { name: 'dashboard' }, restoredRoute = false;
 try { const r = sessionStorage.getItem('wls_route'); if (ROUTE_OK.includes(r) && r !== 'dashboard') { route = { name: r }; restoredRoute = true; } } catch (e) { /* تجاهل */ }
 
 const DEFAULT_SCHOOL = 'W.L.S prep&secondary';
-const OLD_PLACEHOLDER = 'W.L.S prep&secondary';
+const OLD_PLACEHOLDER = 'مدرسة ويزنس للغات';
+const schoolNameEn = () => (S.cfg && S.cfg.schoolEn) || (S.cfg && /[\u0600-\u06FF]/.test(schoolName()) ? DEFAULT_SCHOOL : schoolName());
 const schoolName = () => (!S.cfg || !S.cfg.school || S.cfg.school === OLD_PLACEHOLDER) ? DEFAULT_SCHOOL : S.cfg.school;
 const scheme = () => (S.cfg && S.cfg.scheme) || DEFAULT_SCHEME;
 function role() {
@@ -854,9 +857,9 @@ document.addEventListener('focusout', () => {
 });
 
 function header() {
-  $('#schoolName').textContent = S.cfg ? schoolName() : 'W.L.S prep&secondary';
+  $('#schoolName').textContent = S.parentMode ? (S.cfg ? schoolNameEn() : 'W.L.S prep&secondary') : (S.cfg ? schoolName() : 'W.L.S prep&secondary');
   $('#termLine').textContent = S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – ' + S.cfg.year : '')) : '';
-  document.title = S.cfg ? schoolName() : 'W.L.S prep&secondary';
+  document.title = S.parentMode ? (S.cfg ? schoolNameEn() : 'W.L.S prep&secondary') : (S.cfg ? schoolName() : 'W.L.S prep&secondary');
   const spEl = document.querySelector('.strip-top .sp'); if (spEl) spEl.textContent = S.parentMode ? '' : 'W.L.S prep&secondary';
   const chip = $('#meChip'); chip.innerHTML = '';
   if (S.me) {
@@ -1328,6 +1331,7 @@ function pageClass() {
           h('button', { class: 'btn small dots', type: 'button', text: '⋯', title: 'المزيد', 'aria-label': 'المزيد', 'aria-haspopup': 'menu', onclick: e => openMenu(e.currentTarget, [
             { text: 'شهادة الطالب (PDF)', run: () => downloadCertificate(cid, s.id, 'pdf') },
             { text: 'شهادة الطالب (صورة)', run: () => downloadCertificate(cid, s.id, 'png') },
+            { text: 'تعطيل / تفعيل حساب الطالب', run: () => toggleStudentAccess(cid, s) },
             '-',
             { text: 'حذف الطالب', danger: true, run: () => deleteStudent(cid, s.id) }]) })));
     })))));
@@ -1456,11 +1460,12 @@ function pageSettings() {
   const cfg = S.cfg, sc = JSON.parse(JSON.stringify(cfg.scheme || DEFAULT_SCHEME));
   const wrap = h('div', {}, h('h1', { class: 'page', text: 'الإعدادات' }));
   const name = h('input', { type: 'text', value: schoolName(), id: 'setSchool' });
+  const nameEn = h('input', { type: 'text', value: cfg.schoolEn || '', id: 'setSchoolEn', dir: 'ltr', placeholder: 'W.L.S prep&secondary' });
   const term = h('input', { type: 'text', value: cfg.term || '', id: 'setTerm' });
   const year = h('input', { type: 'text', value: cfg.year || '', id: 'setYear' });
   wrap.append(h('div', { class: 'card' }, h('h2', { text: 'بيانات المدرسة' }),
-    h('div', { class: 'scheme-grid' }, h('label', { class: 'f' }, 'اسم المدرسة', name), h('label', { class: 'f' }, 'الفصل الدراسي', term), h('label', { class: 'f' }, 'العام الدراسي', year)),
-    h('div', { style: 'margin-top:12px' }, h('button', { class: 'btn primary', type: 'button', text: 'حفظ', onclick: async () => { await write('config/main', { school: name.value.trim(), term: term.value.trim(), year: year.value.trim() }); toast('تم الحفظ.'); } }))));
+    h('div', { class: 'scheme-grid' }, h('label', { class: 'f' }, 'اسم المدرسة', name), h('label', { class: 'f' }, 'اسم المدرسة بالإنجليزي (لصفحات الطلاب وأولياء الأمور)', nameEn), h('label', { class: 'f' }, 'الفصل الدراسي', term), h('label', { class: 'f' }, 'العام الدراسي', year)),
+    h('div', { style: 'margin-top:12px' }, h('button', { class: 'btn primary', type: 'button', text: 'حفظ', onclick: async () => { await write('config/main', { school: name.value.trim(), schoolEn: nameEn.value.trim(), term: term.value.trim(), year: year.value.trim() }); toast('تم الحفظ.'); } }))));
 
   const weeks = h('input', { type: 'number', min: 1, max: 6, value: sc.weeks, id: 'setWeeks' });
   const weekMax = h('input', { type: 'number', min: 1, step: 'any', value: sc.weekMax, id: 'setWeekMax' });
@@ -2239,6 +2244,7 @@ function pageParentHome() {
     h('p', { class: 'lead', text: S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – Academic year ' + S.cfg.year : '')) : '' }));
   hero.insertAdjacentHTML('beforeend', DOODLE); wrap.append(hero);
   if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'Your account is not active or has been closed. Please contact the school.' })); return wrap; }
+  if (P.off) { wrap.append(h('div', { class: 'banner err', text: 'Your account is currently suspended. Please contact the school administration.' })); return wrap; }
   if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'The system is not set up yet.' })); return wrap; }
   const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [];
   if (!kids.length) { wrap.append(h('div', { class: 'empty', text: 'No student is linked to your account. Please contact the school.' })); return wrap; }
@@ -2413,6 +2419,19 @@ function watchPlans() {
 /* =====================================================================
    شهادة الطالب (PDF أو صورة): بتترسم على canvas من غير أي مكتبة خارجية
    ===================================================================== */
+// تعطيل/تفعيل دخول الطالب وولي أمره (مثلًا لعدم سداد المصاريف): بيتسجّل علامة off على حسابيهم ومش بيتمسح حاجة
+async function toggleStudentAccess(cid, st) {
+  try {
+    const kid = cid + '__' + st.id;
+    const snap = await db.collection('parents').where('kids', 'array-contains', kid).get();
+    if (!snap.docs.length) { toast('الطالب ده معندوش حسابات دخول لسه.', true); return; }
+    const isOff = snap.docs.some(d => d.data().off), now = !isOff;
+    if (!(await confirmBox((now ? 'تعطيل حساب «' : 'تفعيل حساب «') + st.name + '» وولي أمره؟\n' + (now ? 'هيشوفوا رسالة إن الحساب موقوف ومش هيشوفوا الدرجات والخطة لحد ما تفعّله تاني.' : 'هيرجعوا يشوفوا الدرجات والخطة عادي.'), now ? 'تعطيل' : 'تفعيل'))) return;
+    for (const d of snap.docs) await db.doc('parents/' + d.id).update({ off: now, offT: Date.now() });
+    logAudit({ x: 'staff', n: (now ? 'تعطيل حساب: ' : 'تفعيل حساب: ') + st.name });
+    toast(now ? 'اتعطّل حساب الطالب وولي الأمر.' : 'اتفعّل حساب الطالب وولي الأمر.');
+  } catch (e) { toast(errText(e), true); }
+}
 function openMenu(btn, items) {
   document.querySelectorAll('.menu-pop').forEach(x => x.remove());
   const pop = h('div', { class: 'menu-pop', role: 'menu' }, items.map(it => it === '-' ? h('hr') : h('button', { type: 'button', role: 'menuitem', class: it.danger ? 'danger' : '', text: it.text, onclick: () => { close(); it.run(); } })));
@@ -2931,7 +2950,7 @@ function fbLogin() {
       '<div class="lp-gal"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
       '<figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
       '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>';
-    const copy = h('div', { class: 'lp-copy' }, h('span', { class: 'lp-eyebrow', text: 'Wiseness Language School' }),
+    const copy = h('div', { class: 'lp-copy' }, h('span', { class: 'lp-eyebrow', text: 'Wiseness Language School' }), h('div', { class: 'lp-for', text: 'For preparatory & secondary' }),
       h('h1', { class: 'lp-title', text: 'Your academic progress, always up to date.' }),
       h('p', { class: 'lp-lead', text: 'Sign in with your email or the school code you received to follow grades and results, or to manage your classes.' }));
     const pts = h('ul', { class: 'lp-points' }); pts.innerHTML = '<li>' + IC.check + 'Grades update live as teachers record them</li><li>' + IC.check + 'Separate secure access for students, parents and staff</li>';
@@ -3136,7 +3155,10 @@ function fbAddUserCard() {
         } }))));
 }
 
+// أيقونة التبويب: حط رابط صورتك هنا (PNG مربّع 256px مثلًا). لو سيبته فاضي بتتاخد لوجو المدرسة اللي في الصفحة.
+const FAVICON_URL = 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793488478/IMG_0980_q9fxzv.png';
 async function init() {
+  try { const fi = document.getElementById('favicon'), cr = document.getElementById('crest'); const u = FAVICON_URL || (cr && cr.src); if (fi && u) fi.href = u; } catch (e) { /* تجاهل */ }
   header();
   if (!window.claude || !window.claude.use) {
     const useFb = !!FIREBASE_CONFIG.apiKey;
