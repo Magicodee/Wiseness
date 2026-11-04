@@ -2885,7 +2885,7 @@ function fbLogin() {
     const { authM, auth } = FB;
     const v = $('#view'); v.innerHTML = ''; $('#tabs').hidden = true; $('#meChip').innerHTML = '';
     document.body.classList.add('landing'); document.documentElement.setAttribute('dir', 'ltr'); document.documentElement.setAttribute('lang', 'en');
-    $('#schoolName').textContent = 'Wiseness Language School'; $('#termLine').textContent = '';
+    $('#schoolName').textContent = 'Wiseness Language School'; $('#termLine').textContent = 'For preparatory & secondary';
     const spEl = document.querySelector('.strip-top .sp'); if (spEl) spEl.textContent = '';
     const email = h('input', { type: 'text', inputmode: 'email', autocomplete: 'username', id: 'loginEmail', dir: 'ltr', autocapitalize: 'none', placeholder: 'Email or school code' });
     const pw = h('input', { type: 'password', autocomplete: 'current-password', id: 'loginPw', dir: 'ltr' });
@@ -2950,7 +2950,7 @@ function fbLogin() {
       '<div class="lp-gal"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
       '<figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
       '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>';
-    const copy = h('div', { class: 'lp-copy' }, h('span', { class: 'lp-eyebrow', text: 'Wiseness Language School' }), h('div', { class: 'lp-for', text: 'For preparatory & secondary' }),
+    const copy = h('div', { class: 'lp-copy' }, 
       h('h1', { class: 'lp-title', text: 'Your academic progress, always up to date.' }),
       h('p', { class: 'lp-lead', text: 'Sign in with your email or the school code you received to follow grades and results, or to manage your classes.' }));
     const pts = h('ul', { class: 'lp-points' }); pts.innerHTML = '<li>' + IC.check + 'Grades update live as teachers record them</li><li>' + IC.check + 'Separate secure access for students, parents and staff</li>';
