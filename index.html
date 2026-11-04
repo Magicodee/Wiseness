@@ -46,7 +46,7 @@
   @media print { #splash { display: none !important; } }
   body.landing .tabwrap, body.landing .chip, body.landing .strip-top { display: none; }
   body.landing main { max-width: none; padding: 0; }
-  .lp-hero { position: relative; overflow: hidden; background: #0c0f3a; color: #fff; }
+  .lp-hero { position: relative; overflow: hidden; background: linear-gradient(120deg, #0c2236 0%, #14344f 55%, #1b4a70 100%); color: #fff; }
   .lp-bg { position: absolute; inset: 0; overflow: hidden; }
   .lp-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1); transition: opacity .8s ease, transform 4s linear; }
   .lp-bg img.on { opacity: 1; transform: scale(1.07); }
@@ -85,7 +85,8 @@
     .lp-inner { grid-template-columns: 1fr; gap: 28px; padding: 36px 18px 64px; min-height: 0; }
     .lp-title { font-size: 1.9rem; } .lp-lead { font-size: 1rem; } .lp-points { display: none; }
     .lp-card { padding: 22px; } .lp-dots { left: 18px; bottom: 20px; }
-    .lp-feats { grid-template-columns: 1fr; } .lp-more { padding: 36px 18px 16px; }
+   .lp-feats { grid-template-columns: 1fr; } .lp-more { padding: 36px 18px 16px; }
+        .lp-dots { left: 18px; bottom: 20px; }
   }
   @media (prefers-reduced-motion: reduce) { .lp-bg img { transition: opacity .01s; transform: none !important; } .lp-dots button { transition: none; } }
   :root {
@@ -2591,10 +2592,10 @@ function blobDownloader() {
 // صفحة الاستقبال: سلايد شو خفيف + تسجيل الدخول (إنجليزي)
 // روابط الصور: بدّل أي رابط هنا برابط Cloudinary بتاعك (مكان واحد بس)
 const IMG = {
-  s1: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328706/IMG_1157_lvlzq6.webp',   // اللوجو + المبنى (قسم Our school)
-  s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328741/IMG_1154_ug9syt.png',   // الساحة والباصات (سلايد 1)
-  s3: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328735/IMG_1153_qvpzbx.png',   // المبنى (سلايد 2)
-  s4: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328736/IMG_1155_hytcpe.png',   // حفل التخرج بالبالونات (سلايد 3)
+  s1: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750258/IMG_1174_vbjo1w.jpg',   // اللوجو + المبنى (قسم Our school)
+  s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750258/IMG_1174_vbjo1w.jpg',   // الساحة والباصات (سلايد 1)
+  s3: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750248/IMG_1175_a1hmz7.jpg',   // المبنى (سلايد 2)
+  s4: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750249/IMG_1176_plqees.jpg',   // حفل التخرج بالبالونات (سلايد 3)
   s5: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328707/IMG_1156_ey4tvm.webp'    // الخريجين أبيض وأسود (قسم Our school)
 };
 const SLIDES = [
@@ -2602,6 +2603,18 @@ const SLIDES = [
   { src: IMG.s3, pos: '50% 50%', alt: 'The school building' },
   { src: IMG.s4, pos: '60% 50%', alt: 'Graduation celebration at the school' }
 ];
+
+  const IMG = {
+  s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750258/IMG_1174_vbjo1w.jpg',
+  s3: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750248/IMG_1175_a1hmz7.jpg',
+  s4: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750249/IMG_1176_plqees.jpg'
+};
+const SLIDES = [
+  { src: IMG.s2, pos: '50% 55%', alt: 'School campus with playgrounds, pool and school buses' },
+  { src: IMG.s3, pos: '50% 50%', alt: 'The school building' },
+  { src: IMG.s4, pos: '60% 50%', alt: 'Graduation celebration at the school' }
+];
+  
 function fbLogin() {
   return new Promise(resolve => {
     const { authM, auth } = FB;
@@ -2614,7 +2627,7 @@ function fbLogin() {
     const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'Your name' });
     const msg = h('div', { class: 'banner err', hidden: true, role: 'alert' });
     const fail = t => { msg.textContent = t; msg.hidden = false; };
-    let timer = null;
+        let timer = null;
     const finish = () => { if (timer) clearInterval(timer); document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
     const login = async e => {
       if (e) e.preventDefault(); msg.hidden = true;
@@ -2660,6 +2673,19 @@ function fbLogin() {
     if (imgs[0].complete) setTimeout(loadRest, 800); else imgs[0].addEventListener('load', () => setTimeout(loadRest, 800), { once: true });
     setTimeout(loadRest, 4000);
     restart();
+        const imgs = SLIDES.map((sl, i) => h('img', { alt: sl.alt, decoding: 'async', style: 'object-position:' + sl.pos, class: i === 0 ? 'on' : '' }));
+    imgs[0].src = SLIDES[0].src; imgs[0].setAttribute('fetchpriority', 'high');
+    const dots = SLIDES.map((sl, i) => h('button', { type: 'button', 'aria-label': 'Show photo ' + (i + 1), class: i === 0 ? 'on' : '', onclick: () => { show(i); restart(); } }));
+    let cur = 0;
+    const loadRest = () => imgs.forEach((im, i) => { if (i && !im.src) im.src = SLIDES[i].src; });
+    const show = i => {
+      const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = SLIDES[n].src;
+      imgs[cur].classList.remove('on'); dots[cur].classList.remove('on'); cur = n; imgs[cur].classList.add('on'); dots[cur].classList.add('on');
+    };
+    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 4000); };
+    if (imgs[0].complete) setTimeout(loadRest, 800); else imgs[0].addEventListener('load', () => setTimeout(loadRest, 800), { once: true });
+    setTimeout(loadRest, 4000);
+    restart();
     const ico = d => '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
     const IC = { check: ico('<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/>'), chart: ico('<path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/>'), shield: ico('<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2.200 2.200L15 10.500"/>'), device: ico('<rect x="3" y="5" width="14" height="10" rx="1.500"/><path d="M8 19h4m-2-4v4"/><rect x="18" y="9" width="3.500" height="9" rx=".8"/>') };
     const more = h('section', { class: 'lp-more' });
@@ -2678,7 +2704,7 @@ function fbLogin() {
     const pts = h('ul', { class: 'lp-points' }); pts.innerHTML = '<li>' + IC.check + 'Grades update live as teachers record them</li><li>' + IC.check + 'Separate secure access for students, parents and staff</li>';
     copy.append(pts);
     v.append(h('div', { class: 'lp', dir: 'ltr', lang: 'en' },
-      h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }),
+            h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }),
         h('div', { class: 'lp-inner' }, copy,
           h('div', { class: 'lp-side' }, h('div', { class: 'lp-card' },
             h('h2', { text: 'Sign in' }), h('p', { class: 'lp-hint', text: 'Welcome back. Enter your details to continue.' }),
