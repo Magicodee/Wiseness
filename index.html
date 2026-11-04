@@ -46,7 +46,7 @@
   @media print { #splash { display: none !important; } }
   body.landing .tabwrap, body.landing .chip, body.landing .strip-top { display: none; }
   body.landing main { max-width: none; padding: 0; }
-  .lp-hero { position: relative; overflow: hidden; background: linear-gradient(120deg, #0c2236 0%, #14344f 55%, #1b4a70 100%); color: #fff; }
+  .lp-hero { position: relative; overflow: hidden; background: #0c0f3a; color: #fff; }
   .lp-bg { position: absolute; inset: 0; overflow: hidden; }
   .lp-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1); transition: opacity .8s ease, transform 4s linear; }
   .lp-bg img.on { opacity: 1; transform: scale(1.07); }
@@ -85,8 +85,7 @@
     .lp-inner { grid-template-columns: 1fr; gap: 28px; padding: 36px 18px 64px; min-height: 0; }
     .lp-title { font-size: 1.9rem; } .lp-lead { font-size: 1rem; } .lp-points { display: none; }
     .lp-card { padding: 22px; } .lp-dots { left: 18px; bottom: 20px; }
-   .lp-feats { grid-template-columns: 1fr; } .lp-more { padding: 36px 18px 16px; }
-        .lp-dots { left: 18px; bottom: 20px; }
+    .lp-feats { grid-template-columns: 1fr; } .lp-more { padding: 36px 18px 16px; }
   }
   @media (prefers-reduced-motion: reduce) { .lp-bg img { transition: opacity .01s; transform: none !important; } .lp-dots button { transition: none; } }
   :root {
@@ -303,6 +302,14 @@
     .legend { margin-inline-start: 0; }
   }
   @media print { .strip-top, .top, .tabs, .acts, #toast { display: none !important; } .wrap { max-height: none; overflow: visible; } }
+  .card, .tile, .lp-feat { transition: box-shadow .2s, transform .2s; }
+.card:hover, .lp-feat:hover { box-shadow: 0 8px 24px rgba(20,18,102,.10); }
+.btn { transition: background .15s, filter .15s, transform .1s; border-radius: 8px; }
+.btn:active { transform: scale(.97); }
+.tbl tbody tr:hover td { background: color-mix(in srgb, var(--head) 55%, transparent); }
+.card, .table-wrap { border-radius: 12px; }
+details > summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.hero { box-shadow: 0 10px 30px rgba(10,107,250,.18); }
 </style>
 </head>
 <body>
@@ -459,7 +466,7 @@ let db = null, userCap = null, dlCap = null;
 // حفظ آخر خطوة: النتائج والمعاينات بتفضل لما تتنقل بين الصفحات، والتبويب بيتفتح تاني بعد التحديث
 const KEEP = { plan: null, imp: null, res: null, busy: false, prog: '', ui: null };
 try { KEEP.res = JSON.parse(sessionStorage.getItem('wls_res') || 'null'); } catch (e) { /* تجاهل */ }
-const ROUTE_OK = ['dashboard', 'classes', 'subjects', 'assign', 'import', 'parents', 'audit', 'trash', 'staff', 'settings'];
+const ROUTE_OK = ['dashboard', 'classes', 'subjects', 'assign', 'import', 'parents', 'audit', 'trash', 'staff', 'settings', 'plan'];
 let route = { name: 'dashboard' }, restoredRoute = false;
 try { const r = sessionStorage.getItem('wls_route'); if (ROUTE_OK.includes(r) && r !== 'dashboard') { route = { name: r }; restoredRoute = true; } } catch (e) { /* تجاهل */ }
 
@@ -839,6 +846,7 @@ function header() {
   const items = [];
   if (role() && role() !== 'parent') {
     items.push(['dashboard', (isStaff() || isViewer()) ? 'متابعة الكشوف' : 'كشوفي']);
+    if (role() === 'teacher' || isStaff()) items.push(['plans', 'الخطة الأسبوعية']);
     if (isViewer()) items.push(['audit', 'سجل التعديلات']);
 if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['import', 'استيراد من ملف'], ['parents', 'أولياء الأمور'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
     if (isAdmin()) items.push(['staff', 'المستخدمون'], ['settings', 'الإعدادات']);
@@ -895,7 +903,7 @@ function renderAll() {
   if ((role() === 'admin' || role() === 'control') && !S.isOwner && !S.isEditor && !S.fb && !S.local)
     v.append(h('div', { class: 'banner warn', text: 'دورك في النظام (إدارة/كنترول) لكن مشاركتك للصفحة بمستوى Contributor، فلن تستطيع تعديل الفصول والإعدادات. اطلب من مالك الصفحة رفع صلاحيتك إلى Editor.' }));
   if (!S.cfg) { v.append(pageSetup()); return; }
-  const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
+  const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings, plans: pagePlans };
   const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', parents: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
 
   const denied = (need === 'staff' && !isStaff() && !(route.name === 'audit' && isViewer())) || (need === 'admin' && !isAdmin());
@@ -1514,7 +1522,7 @@ function pageAudit() {
       const state = e.x ? '' : '';
       return { who, text: stuName(e.a, e.st) + ' | ' + where + ' | ' + (f ? f.label : e.k) + ': ' + (e.o == null ? 'فارغ' : fmt(e.o)) + ' ← ' + (e.n == null ? 'فارغ' : fmt(e.n)) + state, kind: 'درجة' };
     }
-    const kinds = { lock: ['اعتماد كشف', where], unlock: ['فتح كشف', where], class: ['إضافة فصل', where], roster: ['تعديل طلاب', where + (e.n ? ' – ' + e.n : '')], assign: ['تكليف', where + (e.n ? ' – ' + e.n : '')], staff: ['مستخدمون', e.n || ''], scheme: ['تعديل هيكل الكشف', ''], del: ['حذف', where + (e.n ? ' – ' + e.n : '')] };
+    const kinds = { lock: ['اعتماد كشف', where], unlock: ['فتح كشف', where], class: ['إضافة فصل', where], roster: ['تعديل طلاب', where + (e.n ? ' – ' + e.n : '')], assign: ['تكليف', where + (e.n ? ' – ' + e.n : '')], staff: ['مستخدمون', e.n || ''], scheme: ['تعديل هيكل الكشف', ''], del: ['حذف', where + (e.n ? ' – ' + e.n : '')], plan: ['خطة أسبوعية', where] };
     const k = kinds[e.x] || [e.x || '—', ''];
     return { who, text: k[1], kind: k[0] };
   }
@@ -2097,6 +2105,7 @@ function subscribeParent() {
     if (key !== kidsKey) {
       kidsKey = key; unsubs.forEach(u => u()); unsubs = [];
       (S.parentDoc.kids || []).forEach(k => unsubs.push(db.collection('pg').where('k', '==', k).onSnapshot(q => { S.pg[k] = q.docs.map(d => d.data()); refresh(); }, parentErr)));
+      unsubs.push(db.collection('pp').where('k', '==', k).onSnapshot(q => { (S.pp = S.pp || {})[k] = q.docs.map(d => d.data()); refresh(); }, parentErr));
     }
     markLoaded('pdoc');
   }, parentErr);
@@ -2145,6 +2154,16 @@ function pageParentHome() {
         h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' }, h('tbody', {}, fields.map(f => h('tr', {},
           h('td', { text: en(f.label) }), h('td', { text: (r.vals[f.key] === undefined ? '—' : fmt(r.vals[f.key])) + ' / ' + f.max })))))))));
     }
+    const pl = ((S.pp || {})[kid] || []).filter(p => S.subjects.some(s => s.id === p.sid)).sort((a, b) => (b.wk || '').localeCompare(a.wk || '') || b.t - a.t).slice(0, 12);
+if (pl.length) {
+  const pc = h('div', { class: 'card' }, h('h2', { text: 'Weekly plan' }));
+  pl.forEach((p, i) => pc.append(h('details', { open: i === 0, style: 'margin-top:8px' },
+    h('summary', {}, h('strong', { text: sn(p.sid) }), ' – week of ' + p.wk + (p.title ? ' – ' + p.title : '')),
+    h('div', { style: 'white-space:pre-line;padding:8px 4px', dir: 'auto', text: p.body }),
+    p.hw ? h('div', { style: 'white-space:pre-line;padding:4px', dir: 'auto' }, h('strong', { text: 'Homework: ' }), p.hw) : null,
+    /^https?:\/\//i.test(p.link || '') ? h('a', { href: p.link, target: '_blank', rel: 'noopener noreferrer', text: 'Open attached link' }) : null)));
+  wrap.append(pc);
+}
     wrap.append(card);
   });
   wrap.append(h('p', { class: 'note', text: 'These are the grades entered by teachers so far. They update live and may change until the school approves the final sheets.' }));
@@ -2432,6 +2451,68 @@ async function exportClass(cid) {
   logAudit({ x: 'export', a: cid });
 }
 
+  /* ===== الخطة الأسبوعية ===== */
+function pagePlans() {
+  const wrap = h('div', {}, h('h1', { class: 'page', text: 'الخطة الأسبوعية' }),
+    h('p', { class: 'lead', text: 'اكتب خطة الأسبوع وانشرها، وهتظهر تلقائيًا لكل طالب في الفصل ولولي أمره.' }));
+  let list = allAssignments(); if (!isStaff()) list = list.filter(a => a.teacher === S.me.id);
+  if (!list.length) { wrap.append(h('div', { class: 'empty', text: 'مفيش مواد متكلّف بيها.' })); return wrap; }
+  const sel = h('select', { id: 'planAsg' }, list.map(a => h('option', { value: a.cid + '|' + a.sid, text: className(a.cid) + ' – ' + subjectName(a.sid) })));
+  const wk = h('input', { type: 'date', id: 'planWk', value: new Date().toISOString().slice(0, 10) });
+  const title = h('input', { type: 'text', id: 'planTitle', placeholder: 'مثال: Unit 3 – Week 2' });
+  const body = h('textarea', { id: 'planBody', placeholder: 'الدروس والأهداف (سطر لكل يوم)…' });
+  const hw = h('textarea', { id: 'planHw', placeholder: 'الواجب (اختياري)', style: 'min-height:70px' });
+  const link = h('input', { type: 'text', dir: 'ltr', id: 'planLink', placeholder: 'https://… (اختياري)' });
+  const status = h('div', { class: 'status', role: 'status' });
+  const btn = h('button', { class: 'btn primary', type: 'button', text: 'نشر لكل الطلاب', onclick: publish });
+  async function publish() {
+    const [cid, sid] = sel.value.split('|'), w = wk.value;
+    if (!w || !body.value.trim()) { toast('اكتب التاريخ ومحتوى الخطة.', true); return; }
+    const lk = link.value.trim();
+    if (lk && !/^https?:\/\//i.test(lk)) { toast('الرابط لازم يبدأ بـ https://', true); return; }
+    const roster = students(cid);
+    if (!roster.length) { toast('الفصل مفيهوش طلاب.', true); return; }
+    const base = { cid, sid, wk: w, title: title.value.trim().slice(0, 120), body: body.value.trim().slice(0, 4000), hw: hw.value.trim().slice(0, 2000), link: lk, t: Date.now(), by: S.me.id };
+    btn.disabled = true;
+    try {
+      await db.doc('plans/' + cid + '__' + sid + '__' + w).set(base);
+      for (let i = 0; i < roster.length; i += 10) {
+        await Promise.all(roster.slice(i, i + 10).map(st => db.doc('pp/' + cid + '__' + st.id + '__' + sid + '__' + w).set(Object.assign({ k: cid + '__' + st.id, st: st.id }, base))));
+        status.textContent = 'جارٍ النشر… ' + Math.min(roster.length, i + 10) + ' من ' + roster.length;
+      }
+      status.textContent = ''; title.value = ''; body.value = ''; hw.value = ''; link.value = '';
+      logAudit({ x: 'plan', a: cid, s: sid, n: 'نشر خطة أسبوعية' });
+      toast('تم نشر الخطة لـ ' + roster.length + ' طالب.');
+    } catch (e) { status.textContent = errText(e); status.classList.add('err'); }
+    btn.disabled = false;
+  }
+  wrap.append(h('div', { class: 'card' },
+    h('div', { class: 'scheme-grid' }, h('label', { class: 'f' }, 'الفصل والمادة', sel), h('label', { class: 'f' }, 'بداية الأسبوع', wk), h('label', { class: 'f' }, 'عنوان (اختياري)', title)),
+    h('label', { class: 'f', style: 'margin-top:12px' }, 'خطة الأسبوع', body),
+    h('div', { class: 'scheme-grid', style: 'margin-top:12px' }, h('label', { class: 'f' }, 'الواجب', hw), h('label', { class: 'f' }, 'رابط (ملف/فيديو)', link)),
+    h('div', { class: 'acts', style: 'margin-top:14px' }, btn), status,
+    h('p', { class: 'note', text: 'النشر لنفس الفصل والمادة والأسبوع بيحدّث الخطة القديمة.' })));
+  const out = h('div'); wrap.append(h('h2', { style: 'margin:20px 0 8px', text: 'الخطط المنشورة' }), out);
+  const col = isStaff() ? db.collection('plans') : db.collection('plans').where('by', '==', S.me.id);
+  auditUnsub = col.onSnapshot(snap => {
+    const items = snap.docs.map(d => d.data()).sort((a, b) => (b.wk || '').localeCompare(a.wk || '') || b.t - a.t).slice(0, 60);
+    out.innerHTML = '';
+    if (!items.length) { out.append(h('div', { class: 'empty', text: 'لسه ما نشرتش خطط.' })); return; }
+    out.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, ['الأسبوع', 'الفصل', 'المادة', 'العنوان'].map(t => h('th', { text: t })), h('th'))),
+      h('tbody', {}, items.map(p => h('tr', {}, h('td', { text: p.wk }), h('td', { text: className(p.cid) }), h('td', { text: subjectName(p.sid) }), h('td', { text: p.title || '—' }),
+        h('td', { class: 'row-actions' },
+          h('button', { class: 'btn small', type: 'button', text: 'تعديل', onclick: () => { sel.value = p.cid + '|' + p.sid; wk.value = p.wk; title.value = p.title || ''; body.value = p.body || ''; hw.value = p.hw || ''; link.value = p.link || ''; window.scrollTo(0, 0); } }),
+          h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: async () => {
+            if (!(await confirmBox('حذف الخطة من كل الطلاب؟', 'حذف'))) return;
+            try {
+              for (const st of students(p.cid, true)) await db.doc('pp/' + p.cid + '__' + st.id + '__' + p.sid + '__' + p.wk).delete();
+              await db.doc('plans/' + p.cid + '__' + p.sid + '__' + p.wk).delete(); toast('تم الحذف.');
+            } catch (e) { toast(errText(e), true); }
+          } }))))))));
+  }, e => { out.innerHTML = ''; out.append(h('div', { class: 'banner err', text: errText(e) })); });
+  return wrap;
+}
 /* =====================================================================
    الإقلاع
    ===================================================================== */
@@ -2592,10 +2673,10 @@ function blobDownloader() {
 // صفحة الاستقبال: سلايد شو خفيف + تسجيل الدخول (إنجليزي)
 // روابط الصور: بدّل أي رابط هنا برابط Cloudinary بتاعك (مكان واحد بس)
 const IMG = {
-  s1: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750258/IMG_1174_vbjo1w.jpg',   // اللوجو + المبنى (قسم Our school)
-  s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750258/IMG_1174_vbjo1w.jpg',   // الساحة والباصات (سلايد 1)
-  s3: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750248/IMG_1175_a1hmz7.jpg',   // المبنى (سلايد 2)
-  s4: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750249/IMG_1176_plqees.jpg',   // حفل التخرج بالبالونات (سلايد 3)
+  s1: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328706/IMG_1157_lvlzq6.webp',   // اللوجو + المبنى (قسم Our school)
+  s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328741/IMG_1154_ug9syt.png',   // الساحة والباصات (سلايد 1)
+  s3: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328735/IMG_1153_qvpzbx.png',   // المبنى (سلايد 2)
+  s4: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328736/IMG_1155_hytcpe.png',   // حفل التخرج بالبالونات (سلايد 3)
   s5: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328707/IMG_1156_ey4tvm.webp'    // الخريجين أبيض وأسود (قسم Our school)
 };
 const SLIDES = [
@@ -2603,18 +2684,6 @@ const SLIDES = [
   { src: IMG.s3, pos: '50% 50%', alt: 'The school building' },
   { src: IMG.s4, pos: '60% 50%', alt: 'Graduation celebration at the school' }
 ];
-
-  const IMG = {
-  s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750258/IMG_1174_vbjo1w.jpg',
-  s3: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750248/IMG_1175_a1hmz7.jpg',
-  s4: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793750249/IMG_1176_plqees.jpg'
-};
-const SLIDES = [
-  { src: IMG.s2, pos: '50% 55%', alt: 'School campus with playgrounds, pool and school buses' },
-  { src: IMG.s3, pos: '50% 50%', alt: 'The school building' },
-  { src: IMG.s4, pos: '60% 50%', alt: 'Graduation celebration at the school' }
-];
-  
 function fbLogin() {
   return new Promise(resolve => {
     const { authM, auth } = FB;
@@ -2627,7 +2696,7 @@ function fbLogin() {
     const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'Your name' });
     const msg = h('div', { class: 'banner err', hidden: true, role: 'alert' });
     const fail = t => { msg.textContent = t; msg.hidden = false; };
-        let timer = null;
+    let timer = null;
     const finish = () => { if (timer) clearInterval(timer); document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
     const login = async e => {
       if (e) e.preventDefault(); msg.hidden = true;
@@ -2669,20 +2738,7 @@ function fbLogin() {
       const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = SLIDES[n].src;
       imgs[cur].classList.remove('on'); dots[cur].classList.remove('on'); cur = n; imgs[cur].classList.add('on'); dots[cur].classList.add('on');
     };
-    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 4000); };
-    if (imgs[0].complete) setTimeout(loadRest, 800); else imgs[0].addEventListener('load', () => setTimeout(loadRest, 800), { once: true });
-    setTimeout(loadRest, 4000);
-    restart();
-        const imgs = SLIDES.map((sl, i) => h('img', { alt: sl.alt, decoding: 'async', style: 'object-position:' + sl.pos, class: i === 0 ? 'on' : '' }));
-    imgs[0].src = SLIDES[0].src; imgs[0].setAttribute('fetchpriority', 'high');
-    const dots = SLIDES.map((sl, i) => h('button', { type: 'button', 'aria-label': 'Show photo ' + (i + 1), class: i === 0 ? 'on' : '', onclick: () => { show(i); restart(); } }));
-    let cur = 0;
-    const loadRest = () => imgs.forEach((im, i) => { if (i && !im.src) im.src = SLIDES[i].src; });
-    const show = i => {
-      const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = SLIDES[n].src;
-      imgs[cur].classList.remove('on'); dots[cur].classList.remove('on'); cur = n; imgs[cur].classList.add('on'); dots[cur].classList.add('on');
-    };
-    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 4000); };
+    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 2000); };
     if (imgs[0].complete) setTimeout(loadRest, 800); else imgs[0].addEventListener('load', () => setTimeout(loadRest, 800), { once: true });
     setTimeout(loadRest, 4000);
     restart();
@@ -2704,7 +2760,7 @@ function fbLogin() {
     const pts = h('ul', { class: 'lp-points' }); pts.innerHTML = '<li>' + IC.check + 'Grades update live as teachers record them</li><li>' + IC.check + 'Separate secure access for students, parents and staff</li>';
     copy.append(pts);
     v.append(h('div', { class: 'lp', dir: 'ltr', lang: 'en' },
-            h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }),
+      h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }),
         h('div', { class: 'lp-inner' }, copy,
           h('div', { class: 'lp-side' }, h('div', { class: 'lp-card' },
             h('h2', { text: 'Sign in' }), h('p', { class: 'lp-hint', text: 'Welcome back. Enter your details to continue.' }),
