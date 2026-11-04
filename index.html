@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>نظام رصد الدرجات</title>
+<title>W.L.S prep&sec</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
-<script>try{var __t=localStorage.getItem('theme');if(__t==='light'||__t==='dark')document.documentElement.setAttribute('data-theme',__t);}catch(e){}</script>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://res.cloudinary.com" crossorigin>  
+<script>try{var __t=localStorage.getItem('theme');if(__t==='light'||__t==='dark')document.documentElement.setAttribute('data-theme',__t);setTimeout(function(){var s=document.getElementById('splash');if(s){s.classList.add('out');setTimeout(function(){s.remove()},1200)}},6000);}catch(e){}</script>
 <style>
   :root { color-scheme: light; } :root[data-theme="dark"] { color-scheme: dark; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
@@ -466,7 +468,7 @@ let db = null, userCap = null, dlCap = null;
 // حفظ آخر خطوة: النتائج والمعاينات بتفضل لما تتنقل بين الصفحات، والتبويب بيتفتح تاني بعد التحديث
 const KEEP = { plan: null, imp: null, res: null, busy: false, prog: '', ui: null };
 try { KEEP.res = JSON.parse(sessionStorage.getItem('wls_res') || 'null'); } catch (e) { /* تجاهل */ }
-const ROUTE_OK = ['dashboard', 'classes', 'subjects', 'assign', 'import', 'parents', 'audit', 'trash', 'staff', 'settings', 'plan'];
+const ROUTE_OK = ['dashboard', 'classes', 'subjects', 'assign', 'import', 'parents', 'audit', 'trash', 'staff', 'settings', 'plans'];
 let route = { name: 'dashboard' }, restoredRoute = false;
 try { const r = sessionStorage.getItem('wls_route'); if (ROUTE_OK.includes(r) && r !== 'dashboard') { route = { name: r }; restoredRoute = true; } } catch (e) { /* تجاهل */ }
 
@@ -884,7 +886,7 @@ function updateTabArrows() {
 const SPLASH_T0 = Date.now();
 function endSplash() {
   const sp = document.getElementById('splash'); if (!sp || sp.dataset.done) return; sp.dataset.done = '1';
-  setTimeout(() => { sp.classList.add('out'); setTimeout(() => sp.remove(), 1100); }, Math.max(0, 2700 - (Date.now() - SPLASH_T0)));
+  setTimeout(() => { sp.classList.add('out'); setTimeout(() => sp.remove(), 1100); }, Math.max(0,  ١٤٠٠ - (Date.now() - SPLASH_T0)));
 }
 setTimeout(endSplash, 9000);
 function renderAll() {
@@ -2104,8 +2106,10 @@ function subscribeParent() {
     const key = (S.parentDoc.kids || []).join('|');
     if (key !== kidsKey) {
       kidsKey = key; unsubs.forEach(u => u()); unsubs = [];
-      (S.parentDoc.kids || []).forEach(k => unsubs.push(db.collection('pg').where('k', '==', k).onSnapshot(q => { S.pg[k] = q.docs.map(d => d.data()); refresh(); }, parentErr)));
-      unsubs.push(db.collection('pp').where('k', '==', k).onSnapshot(q => { (S.pp = S.pp || {})[k] = q.docs.map(d => d.data()); refresh(); }, parentErr));
+           (S.parentDoc.kids || []).forEach(k => {
+        unsubs.push(db.collection('pg').where('k', '==', k).onSnapshot(q => { S.pg[k] = q.docs.map(d => d.data()); refresh(); }, parentErr));
+        unsubs.push(db.collection('pp').where('k', '==', k).onSnapshot(q => { (S.pp = S.pp || {})[k] = q.docs.map(d => d.data()); refresh(); }, () => {}));
+      });
     }
     markLoaded('pdoc');
   }, parentErr);
