@@ -3,7 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>نظام رصد الدرجات</title>
+<title>W.L.S prep&secondary</title>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
@@ -175,9 +180,9 @@
   .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
   /* ---------- عناصر عامة ---------- */
-  .btn { display: inline-block; font: inherit; font-size: .92rem; cursor: pointer; text-align: center; background: var(--card); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 14px; }
+  .btn { display: inline-block; font: inherit; font-size: .92rem; cursor: pointer; text-align: center; background: var(--card); color: var(--sky); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 14px; }
   .btn:hover { background: var(--head); }
-  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--sky); border-color: var(--accent); }
   .btn.primary:hover { filter: brightness(1.12); }
   .btn.small { padding: 4px 10px; font-size: .84rem; }
   .btn.danger { color: var(--bad); border-color: var(--bad); }
@@ -187,6 +192,29 @@
     font: inherit; background: var(--card); color: var(--text); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 10px; min-width: 0;
   }
   textarea { width: 100%; min-height: 110px; resize: vertical; }
+  .plan-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 14px; }
+  .plan-nav strong { flex: 1 1 auto; text-align: center; color: var(--ink); }
+  .plan-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 8px; }
+  .plan-form textarea { min-height: 84px; }
+  .plan-card { margin-top: 12px; }
+  .plan-card h3 { margin: 0 0 4px; color: var(--ink); }
+  .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 8px; }
+  .plan-day, .plan-hw, .plan-note { background: var(--head); border-radius: 12px; padding: 10px 12px; }
+  .plan-hw, .plan-note { margin-top: 10px; }
+  .plan-day p, .plan-hw p, .plan-note p { margin: 4px 0 0; white-space: pre-wrap; line-height: 1.7; }
+  .plan-sec { margin-bottom: 22px; }
+  .plan-over { margin-top: 22px; }
+  /* لمسات الشكل والحركة */
+  .btn, button.btn, select, input, textarea { transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease; }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, #tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); outline: none; }
+  .card { box-shadow: 0 1px 2px rgba(20,18,102,.05), 0 6px 18px rgba(20,18,102,.05); }
+  .tbl tbody tr { transition: background-color .12s ease; }
+  .tbl tbody tr:hover { background: color-mix(in srgb, var(--head) 55%, transparent); }
+  .hero { box-shadow: 0 10px 28px rgba(10,107,250,.18); }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
   label.f { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
   .pill { display: inline-block; padding: 1px 10px; border-radius: 99px; font-size: .8rem; font-weight: 600; border: 1px solid; white-space: nowrap; }
   .pill.locked { background: var(--ok-bg); color: var(--ok); border-color: var(--ok-line); }
@@ -804,10 +832,12 @@ function go(name, params) {
   renderAll();
   window.scrollTo(0, 0);
 }
-function refresh() {
+let refreshT = 0;
+function refresh() { if (refreshT) return; refreshT = setTimeout(() => { refreshT = 0; refreshNow(); }, 40); }   // بيجمّع التحديثات المتتالية في رسم واحد
+function refreshNow() {
   if (!ready() && !S.fatal) return;
   header();
-    if (route.name === 'import' || route.name === 'parents' || staffBusy) return;
+    if (route.name === 'import' || route.name === 'parents' || route.name === 'plans' || staffBusy) return;
   if (sheetCtl) { sheetCtl.onState(); return; }
   const a = document.activeElement;
   if (a && $('#view').contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { pendingRefresh = true; return; }
@@ -838,6 +868,7 @@ function header() {
   const items = [];
   if (role() && role() !== 'parent') {
     items.push(['dashboard', (isStaff() || isViewer()) ? 'متابعة الكشوف' : 'كشوفي']);
+    items.push(['plans', 'الخطة الأسبوعية']);
     if (isViewer()) items.push(['audit', 'سجل التعديلات']);
 if (isStaff()) items.push(['classes', 'الفصول والطلاب'], ['subjects', 'المواد'], ['assign', 'تكليف المعلمين'], ['import', 'استيراد من ملف'], ['parents', 'أولياء الأمور'], ['audit', 'سجل التعديلات'], ['trash', 'سلة المحذوفات']);
     if (isAdmin()) items.push(['staff', 'المستخدمون'], ['settings', 'الإعدادات']);
@@ -894,7 +925,7 @@ function renderAll() {
   if ((role() === 'admin' || role() === 'control') && !S.isOwner && !S.isEditor && !S.fb && !S.local)
     v.append(h('div', { class: 'banner warn', text: 'دورك في النظام (إدارة/كنترول) لكن مشاركتك للصفحة بمستوى Contributor، فلن تستطيع تعديل الفصول والإعدادات. اطلب من مالك الصفحة رفع صلاحيتك إلى Editor.' }));
   if (!S.cfg) { v.append(pageSetup()); return; }
-  const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
+  const pages = { dashboard: pageDashboard, sheet: pageSheet, classes: pageClasses, class: pageClass, subjects: pageSubjects, assign: pageAssign, import: pageImport, parents: pageParents, plans: pagePlans, audit: pageAudit, trash: pageTrash, staff: pageStaff, settings: pageSettings };
   const need = { classes: 'staff', class: 'staff', subjects: 'staff', assign: 'staff', import: 'staff', parents: 'staff', audit: 'staff', trash: 'staff', staff: 'admin', settings: 'admin' }[route.name];
 
   const denied = (need === 'staff' && !isStaff() && !(route.name === 'audit' && isViewer())) || (need === 'admin' && !isAdmin());
@@ -1502,7 +1533,15 @@ function pageAudit() {
     h('p', { class: 'lead', text: 'بيسجل تعديل أي درجة كانت مرصودة قبل كده، وأي تعديل بعد اعتماد الكشف، والاعتماد والفتح، وتغييرات الفصول والتكليف. آخر 8 أسابيع.' }));
   const q = h('input', { type: 'text', placeholder: 'بحث باسم طالب أو معلم أو مادة…', id: 'auditQ' });
   const out = h('div'); const info = h('div', { class: 'empty', text: 'جارٍ التحميل…' });
-  wrap.append(h('div', { class: 'filter' }, q), out); out.append(info);
+  const clearAll = async () => {
+    if (!(await confirmBox('مسح سجل التعديلات كله نهائيًا؟ مفيش رجوع.', 'مسح السجل'))) return;
+    try {
+      const all = await db.collection('audit').get(); let n = 0;
+      for (const d of all.docs) { await db.doc('audit/' + d.id).delete(); n++; }
+      toast(n ? 'اتمسح السجل (' + n + ' مستند).' : 'السجل فاضي.');
+    } catch (e) { toast(errText(e), true); }
+  };
+  wrap.append(h('div', { class: 'filter' }, q, isStaff() && h('button', { class: 'btn danger', type: 'button', text: 'مسح السجل', onclick: clearAll })), out); out.append(info);
   let entries = [];
   function stuName(cid, id) { const s = ((S.classes[cid] || {}).students || []).find(x => x.id === id); return s ? s.name : 'طالب'; }
   function describe(e) {
@@ -1738,11 +1777,13 @@ async function writeVerified(path, data) {                 // كتابة مبا�
   await db.doc(path).set(data);
   return true;
 }
+// Firebase مش بيقبل أقل من 6 حروف، فالقصيرة بتتكمّل داخليًا بعلامات ثابتة (المستخدم بيكتب ويشوف كلمته زي ما هي)
+const authPw = p => { p = String(p); return p.length >= 6 ? p : p + '·'.repeat(6 - p.length); };
 async function createParentAuth(login, password) {          // بيرجع uid الحساب الجديد
   const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'psec' + Date.now() + Math.random().toString(36).slice(2, 5));
   try {
     const sAuth = FB.authM.getAuth(sec);
-    const cred = await FB.authM.createUserWithEmailAndPassword(sAuth, login, password);
+    const cred = await FB.authM.createUserWithEmailAndPassword(sAuth, login, authPw(password));
     const uid = cred.user.uid;
     await FB.authM.signOut(sAuth);
     return uid;
@@ -1865,11 +1906,84 @@ async function deleteAuthUser(email, pw) {
   const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'pdel' + Date.now() + Math.random().toString(36).slice(2, 5));
   try {
     const a = FB.authM.getAuth(sec);
-    const cred = await FB.authM.signInWithEmailAndPassword(a, email, pw);
+    const cred = await FB.authM.signInWithEmailAndPassword(a, email, authPw(pw));
     await FB.authM.deleteUser(cred.user);
     return true;
   } catch (e) { return false; }
   finally { try { await FB.appM.deleteApp(sec); } catch (x) { /* تجاهل */ } }
+}
+// تغيير كلمة مرور حساب دخول (بنعرف كلمة المرور القديمة فبندخل بيه من تطبيق ثانوي)
+async function changeAuthPassword(email, oldPw, newPw) {
+  const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'pchg' + Date.now() + Math.random().toString(36).slice(2, 5));
+  try {
+    const a = FB.authM.getAuth(sec);
+    const cred = await FB.authM.signInWithEmailAndPassword(a, email, authPw(oldPw));
+    await FB.authM.updatePassword(cred.user, authPw(newPw));
+    return true;
+  } catch (e) { return false; }
+  finally { try { await FB.appM.deleteApp(sec); } catch (x) { /* تجاهل */ } }
+}
+// تعديل كود الطالب و/أو كلمة المرور: الطالب وولي الأمر بيتغيّروا مع بعض (ولي الأمر = p- + الكود)
+async function applyPairEdit(g, code, pw) {
+  const sameCode = code.toLowerCase() === (g.scode || '').toLowerCase();
+  if (sameCode && pw === g.pw) return;
+  if (sameCode) {                                   // كلمة المرور بس
+    const lg = [g.scode && loginId(g.scode), g.pcode && loginId(g.pcode)].filter(Boolean), done = [];
+    for (const l of lg) {
+      if (!(await changeAuthPassword(l, g.pw, pw))) {
+        for (const d of done) await changeAuthPassword(d, pw, g.pw);
+        throw new Error('تعذّر تغيير كلمة المرور في Authentication (ممكن تكون اتغيّرت من برا). جرّب «إعادة إصدار».');
+      }
+      done.push(l);
+    }
+    for (const u of [g.sUid, g.pUid]) { if (u) await db.doc('creds/' + u).update({ pw }); }
+    return;
+  }
+  let sUid = null, pUid = null;                     // كود جديد: حسابات جديدة بنفس البيانات وبعدين مسح القديمة
+  try {
+    sUid = await createParentAuth(studentLogin(code), pw);
+    pUid = await createParentAuth(parentLogin(code), pw);
+    const get = async path => { try { const d = await db.doc(path).get(); return d.exists ? d.data() : {}; } catch (e) { return {}; } };
+    const [so, po, sc, pc] = await Promise.all([get('parents/' + g.sUid), get('parents/' + g.pUid), get('creds/' + g.sUid), get('creds/' + g.pUid)]);
+    await writeVerified('parents/' + sUid, Object.assign({}, so, { login: code, type: 's' }));
+    await writeVerified('parents/' + pUid, Object.assign({}, po, { login: 'p-' + code, type: 'p' }));
+    await writeVerified('creds/' + sUid, Object.assign({}, sc, { login: code, type: 's', pw }));
+    await writeVerified('creds/' + pUid, Object.assign({}, pc, { login: 'p-' + code, type: 'p', pw }));
+  } catch (e) {
+    for (const u of [sUid, pUid]) { if (u) { try { await db.doc('parents/' + u).delete(); await db.doc('creds/' + u).delete(); } catch (x) { /* تجاهل */ } } }
+    if (sUid) await deleteAuthUser(studentLogin(code), pw);
+    if (pUid) await deleteAuthUser(parentLogin(code), pw);
+    throw e;
+  }
+  for (const u of [g.sUid, g.pUid]) { if (u) { await del('parents/' + u); await del('creds/' + u); } }
+  if (g.scode) await deleteAuthUser(loginId(g.scode), g.pw);
+  if (g.pcode) await deleteAuthUser(loginId(g.pcode), g.pw);
+}
+function editPair(g) {
+  const m = $('#modal'); m.innerHTML = '';
+  const code = h('input', { type: 'text', dir: 'ltr', value: g.scode || '', autocapitalize: 'off', autocomplete: 'off', spellcheck: false });
+  const pw = h('input', { type: 'text', dir: 'ltr', value: g.pw || '', autocomplete: 'off', spellcheck: false });
+  const err = h('div', { class: 'banner err', hidden: true }), hint = h('p', { class: 'note', dir: 'ltr', style: 'text-align:right' });
+  const showHint = () => { hint.textContent = 'p-' + (code.value.trim() || '…'); };
+  code.addEventListener('input', showHint); showHint();
+  const close = () => { m.classList.remove('show'); m.innerHTML = ''; };
+  let busy = false;
+  const ok = h('button', { class: 'btn primary', type: 'button', text: 'حفظ', onclick: async () => {
+    if (busy) return; err.hidden = true;
+    const c = code.value.trim(), p = pw.value.trim();
+    if (!/^[A-Za-z0-9._-]{3,30}$/.test(c)) { err.textContent = 'الكود حروف إنجليزي وأرقام (3 إلى 30) من غير مسافات.'; err.hidden = false; return; }
+    if (/^p-/i.test(c)) { err.textContent = 'الكود مينفعش يبدأ بـ p- (ده بيتضاف لولي الأمر تلقائيًا).'; err.hidden = false; return; }
+    if (!p) { err.textContent = 'اكتب كلمة المرور.'; err.hidden = false; return; }
+    busy = true; ok.disabled = true; ok.textContent = 'جارٍ الحفظ…';
+    try { await applyPairEdit(g, c, p); logAudit({ x: 'staff', n: 'تعديل دخول: ' + g.sname }); close(); toast('اتعدّل. الطالب وولي الأمر اتحدّثوا مع بعض.'); }
+    catch (e) { err.textContent = (e && e.code === 'auth/email-already-in-use') ? 'الكود ده مستخدم لطالب تاني. اختار كود مختلف.' : ((e && e.code && e.code.startsWith('auth/')) ? authErr(e) : (e.message || 'تعذّر التعديل.')); err.hidden = false; busy = false; ok.disabled = false; ok.textContent = 'حفظ'; }
+  } });
+  m.append(h('div', { class: 'dlg', role: 'dialog', 'aria-modal': 'true' },
+    h('h2', { text: 'تعديل دخول: ' + (g.sname || '') }),
+    h('label', { class: 'f' }, 'كود الطالب', code), h('div', { class: 'note' }, 'كود ولي الأمر هيبقى:'), hint,
+    h('label', { class: 'f' }, 'كلمة المرور (للطالب وولي الأمر)', pw), err,
+    h('div', { class: 'dlg-actions', style: 'margin-top:14px' }, ok, h('button', { class: 'btn', type: 'button', text: 'إلغاء', onclick: close }))));
+  m.classList.add('show'); code.focus();
 }
 async function reissuePair(g) {
   if (!(await confirmBox('إصدار كود وكلمة مرور جديدين لـ «' + g.sname + '» (الطالب وولي الأمر)؟\nالدخول القديم هيتمسح فورًا.', 'إصدار'))) return;
@@ -2045,6 +2159,7 @@ function pageParents() {
         h('td', { dir: 'ltr', style: 'text-align:right', text: g.scode || '—' }), h('td', { dir: 'ltr', style: 'text-align:right', text: g.pcode || '—' }),
         pwCell(g),
         h('td', { class: 'row-actions' },
+          h('button', { class: 'btn small', type: 'button', text: 'تعديل', onclick: () => editPair(g) }),
           h('button', { class: 'btn small', type: 'button', text: 'إعادة إصدار', onclick: () => reissuePair(g) }),
           h('button', { class: 'btn small danger', type: 'button', text: 'حذف', onclick: () => deletePairs([g]) }))))))));
     if (shown.length > 300) list.append(h('p', { class: 'note', text: 'معروض أول 300 بس. استخدم البحث أو «تنزيل المعروض».' }));
@@ -2094,7 +2209,7 @@ function subscribeParent() {
     S.parentDoc = s.data(); S.revoked = false;
     const key = (S.parentDoc.kids || []).join('|');
     if (key !== kidsKey) {
-      kidsKey = key; unsubs.forEach(u => u()); unsubs = [];
+      kidsKey = key; unsubs.forEach(u => u()); unsubs = []; watchPlans();
       (S.parentDoc.kids || []).forEach(k => unsubs.push(db.collection('pg').where('k', '==', k).onSnapshot(q => { S.pg[k] = q.docs.map(d => d.data()); refresh(); }, parentErr)));
     }
     markLoaded('pdoc');
@@ -2108,8 +2223,8 @@ function changeMyPassword() {
     h('label', { class: 'f' }, 'كلمة المرور الجديدة', pw),
     h('div', { class: 'dlg-actions', style: 'margin-top:14px' },
       h('button', { class: 'btn primary', type: 'button', text: 'حفظ', onclick: async () => {
-        if (pw.value.length < 6) { toast('كلمة المرور لازم تكون 6 حروف على الأقل (حد Firebase).', true); return; }
-        try { await FB.authM.updatePassword(FB.auth.currentUser, pw.value); close(); toast('تم تغيير كلمة المرور.'); }
+        if (!pw.value) { toast('اكتب كلمة المرور.', true); return; }
+        try { await FB.authM.updatePassword(FB.auth.currentUser, authPw(pw.value)); close(); toast('تم تغيير كلمة المرور.'); }
         catch (e) { toast(e && e.code === 'auth/requires-recent-login' ? 'اخرج وادخل تاني وبعدين غيّر كلمة المرور.' : authErr(e), true); }
       } }),
       h('button', { class: 'btn', type: 'button', text: 'إلغاء', onclick: close }))));
@@ -2124,6 +2239,7 @@ function pageParentHome() {
   if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'The system is not set up yet.' })); return wrap; }
   const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [];
   if (!kids.length) { wrap.append(h('div', { class: 'empty', text: 'No student is linked to your account. Please contact the school.' })); return wrap; }
+  wrap.append(planSection(P));
   kids.forEach(kid => {
     const info = (P.info || {})[kid] || {};
     const rows = ((S.pg || {})[kid] || []).filter(d => S.subjects.some(s => s.id === d.sid))
@@ -2151,6 +2267,146 @@ function pageParentHome() {
 }
 
   
+/* =====================================================================
+   الخطة الأسبوعية: المعلم بيكتبها للفصل، وبتظهر لكل طالب وولي أمر في الفصل
+   المستند: plans/{cid}__{الأحد بتاريخه}  ->  { cid, wk, s: { [sid]: { d:{sun..thu}, hw, note, by, byName, ts } } }
+   ===================================================================== */
+const PDAYS = [['sun', 'الأحد', 'Sunday'], ['mon', 'الاثنين', 'Monday'], ['tue', 'الثلاثاء', 'Tuesday'], ['wed', 'الأربعاء', 'Wednesday'], ['thu', 'الخميس', 'Thursday']];
+const isoDay = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function weekStart(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - x.getDay()); return isoDay(x); }   // الأحد
+function shiftWeek(wk, n) { const [y, m, dd] = wk.split('-').map(Number); const x = new Date(y, m - 1, dd + 7 * n); return isoDay(x); }
+function weekLabel(wk, lang) {
+  const [y, m, dd] = wk.split('-').map(Number), a = new Date(y, m - 1, dd), b = new Date(y, m - 1, dd + 4);
+  const loc = lang === 'en' ? 'en-GB' : 'ar-EG', f = x => x.toLocaleDateString(loc, { day: 'numeric', month: 'long' });
+  return f(a) + ' – ' + f(b) + ' ' + b.getFullYear();
+}
+const planId = (cid, wk) => cid + '__' + wk;
+const planHasContent = p => p && (PDAYS.some(([k]) => ((p.d || {})[k] || '').trim()) || (p.hw || '').trim() || (p.note || '').trim());
+
+async function savePlan(id, patch) { const r = db.doc('plans/' + id); try { await r.update(patch); } catch (e) { if (e && e.code === 'invalid_argument') await r.set(patch); else throw e; } }
+function pagePlans() {
+  const wrap = h('div'), staff = isStaff(), viewer = isViewer();
+  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: 'الخطة الأسبوعية' }),
+    h('p', { class: 'lead', text: 'اكتب خطة الأسبوع لفصلك، وبتظهر فورًا لكل طالب وولي أمر في الفصل.' }));
+  hero.insertAdjacentHTML('beforeend', DOODLE); wrap.append(hero);
+  let list = allAssignments();
+  if (!staff && !viewer) list = list.filter(a => a.teacher === S.me.id);
+  if (!list.length) { wrap.append(h('div', { class: 'empty', text: 'مفيش فصول أو مواد متكلّف بيها. تواصل مع الكنترول.' })); return wrap; }
+  list.sort((a, b) => className(a.cid).localeCompare(className(b.cid), 'ar') || subjectName(a.sid).localeCompare(subjectName(b.sid), 'ar'));
+  route.wk = route.wk || weekStart(new Date());
+  const key = a => a.cid + '|' + a.sid;
+  if (!route.pa || !list.some(a => key(a) === route.pa)) route.pa = key(list[0]);
+  const canEdit = staff || !viewer;
+  const sel = h('select', { id: 'planAssign', onchange: e => { route.pa = e.target.value; renderAll(); } },
+    list.map(a => h('option', { value: key(a), text: className(a.cid) + ' — ' + subjectName(a.sid) })));
+  sel.value = route.pa;
+  const [cid, sid] = route.pa.split('|');
+  const wkTxt = h('strong', { text: 'الأسبوع: ' + weekLabel(route.wk) });
+  const nav = h('div', { class: 'plan-nav' },
+    h('button', { class: 'btn small', type: 'button', text: '→ الأسبوع السابق', onclick: () => { route.wk = shiftWeek(route.wk, -1); renderAll(); } }),
+    wkTxt,
+    h('button', { class: 'btn small', type: 'button', text: 'الأسبوع التالي ←', onclick: () => { route.wk = shiftWeek(route.wk, 1); renderAll(); } }),
+    route.wk !== weekStart(new Date()) && h('button', { class: 'btn small', type: 'button', text: 'هذا الأسبوع', onclick: () => { route.wk = weekStart(new Date()); renderAll(); } }));
+  wrap.append(h('div', { class: 'filter' }, 'الفصل والمادة', sel), nav);
+
+  const ta = {}, form = h('div', { class: 'card plan-form' });
+  PDAYS.forEach(([k, ar]) => { ta[k] = h('textarea', { rows: 3, placeholder: 'دروس ' + ar + '...', disabled: !canEdit }); });
+  const hw = h('textarea', { rows: 3, placeholder: 'الواجبات المطلوبة', disabled: !canEdit });
+  const note = h('textarea', { rows: 2, placeholder: 'ملاحظات لأولياء الأمور (اختياري)', disabled: !canEdit });
+  const info = h('p', { class: 'note' }), overview = h('div', { class: 'plan-over' });
+  let dirty = false, cur = null;
+  [...Object.values(ta), hw, note].forEach(x => x.addEventListener('input', () => { dirty = true; }));
+  const fill = () => {
+    const p = ((cur || {}).s || {})[sid] || {};
+    PDAYS.forEach(([k]) => { ta[k].value = (p.d || {})[k] || ''; }); hw.value = p.hw || ''; note.value = p.note || '';
+    info.textContent = planHasContent(p) ? ('منشورة للطلاب' + (p.byName ? ' · ' + p.byName : '') + (p.ts ? ' · ' + new Date(p.ts).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '')) : 'لسه ما اتكتبتش خطة للمادة دي في الأسبوع ده.';
+    dirty = false;
+  };
+  const drawOverview = () => {
+    overview.innerHTML = '';
+    const subs = Object.entries(((cur || {}).s) || {}).filter(([, p]) => planHasContent(p));
+    overview.append(h('h2', { text: 'خطة الفصل كاملة لهذا الأسبوع' }));
+    if (!subs.length) { overview.append(h('div', { class: 'empty', text: 'لسه مفيش خطط منشورة للفصل ده في الأسبوع ده.' })); return; }
+    subs.sort((a, b) => subjectName(a[0]).localeCompare(subjectName(b[0]), 'ar')).forEach(([s, p]) => overview.append(planCard(subjectName(s), p, 'ar')));
+  };
+  const load = () => {
+    if (auditUnsub) auditUnsub();
+    auditUnsub = db.doc('plans/' + planId(cid, route.wk)).onSnapshot(s => {
+      cur = s.exists ? s.data() : null;
+      const a = document.activeElement; if (!dirty || !(a && form.contains(a))) fill();
+      drawOverview();
+    }, e => { info.textContent = errText(e); });
+  };
+  const save = async () => {
+    const d = {}; PDAYS.forEach(([k]) => { d[k] = ta[k].value.trim(); });
+    const p = { d, hw: hw.value.trim(), note: note.value.trim(), by: S.me.id, byName: nameOf(S.me.id) || S.me.name || '', ts: Date.now() };
+    if (!planHasContent(p)) { toast('اكتب حاجة في الخطة الأول.', true); return; }
+    try { await savePlan(planId(cid, route.wk), { cid, wk: route.wk, s: { [sid]: p } }); dirty = false; toast('اتحفظت واتنشرت لكل طلاب الفصل.'); }
+    catch (e) { toast(errText(e), true); }
+  };
+  const remove = async () => {
+    if (!confirm('تمسح خطة المادة دي من الأسبوع ده؟ الطلاب مش هيشوفوها.')) return;
+    try { const blank = {}; PDAYS.forEach(([k]) => { blank[k] = ''; }); await savePlan(planId(cid, route.wk), { cid, wk: route.wk, s: { [sid]: { d: blank, hw: '', note: '', by: S.me.id, byName: '', ts: Date.now() } } }); toast('اتمسحت.'); }
+    catch (e) { toast(errText(e), true); }
+  };
+  const copyPrev = async () => {
+    try {
+      const s = await db.doc('plans/' + planId(cid, shiftWeek(route.wk, -1))).get(), p = s.exists ? (s.data().s || {})[sid] : null;
+      if (!planHasContent(p)) { toast('مفيش خطة في الأسبوع السابق للمادة دي.', true); return; }
+      PDAYS.forEach(([k]) => { ta[k].value = (p.d || {})[k] || ''; }); hw.value = p.hw || ''; note.value = p.note || ''; dirty = true;
+      toast('اتنسخت. عدّل واضغط حفظ ونشر.');
+    } catch (e) { toast(errText(e), true); }
+  };
+  form.append(h('h2', { text: className(cid) + ' — ' + subjectName(sid) }),
+    h('div', { class: 'plan-days' }, PDAYS.map(([k, ar]) => h('label', { class: 'f' }, ar, ta[k]))),
+    h('label', { class: 'f' }, 'الواجبات', hw), h('label', { class: 'f' }, 'ملاحظات', note), info,
+    canEdit && h('div', { class: 'acts' },
+      h('button', { class: 'btn primary', type: 'button', text: 'حفظ ونشر للطلاب', onclick: save }),
+      h('button', { class: 'btn', type: 'button', text: 'نسخ من الأسبوع السابق', onclick: copyPrev }),
+      h('button', { class: 'btn danger', type: 'button', text: 'حذف', onclick: remove })));
+  wrap.append(form, overview);
+  load();
+  return wrap;
+}
+// كارت يعرض خطة مادة واحدة (للمعلم بالعربي وللطالب بالإنجليزي)
+function planCard(title, p, lang) {
+  const en_ = lang === 'en', c = h('div', { class: 'card plan-card' }, h('h3', { dir: 'auto', text: title }));
+  if (p.byName) c.append(h('p', { class: 'note', dir: 'auto', text: (en_ ? 'Teacher: ' : 'المعلم: ') + p.byName }));
+  const g = h('div', { class: 'plan-grid' });
+  PDAYS.forEach(([k, ar, e]) => { const t = ((p.d || {})[k] || '').trim(); if (t) g.append(h('div', { class: 'plan-day' }, h('b', { text: en_ ? e : ar }), h('p', { dir: 'auto', text: t }))); });
+  if (g.children.length) c.append(g);
+  if ((p.hw || '').trim()) c.append(h('div', { class: 'plan-hw' }, h('b', { text: en_ ? 'Homework' : 'الواجبات' }), h('p', { dir: 'auto', text: p.hw })));
+  if ((p.note || '').trim()) c.append(h('div', { class: 'plan-note' }, h('b', { text: en_ ? 'Notes' : 'ملاحظات' }), h('p', { dir: 'auto', text: p.note })));
+  return c;
+}
+// للطالب وولي الأمر
+function planSection(P) {
+  S.planWk = S.planWk || weekStart(new Date());
+  const kids = (P.kids || []), cids = [...new Set(kids.map(k => k.split('__')[0]))];
+  const sec = h('div', { class: 'plan-sec' }, h('h2', { class: 'page-h', text: 'Weekly plan' }));
+  const go_ = n => { S.planWk = n === 0 ? weekStart(new Date()) : shiftWeek(S.planWk, n); watchPlans(); refresh(); };
+  sec.append(h('div', { class: 'plan-nav' },
+    h('button', { class: 'btn small', type: 'button', text: '← Previous', onclick: () => go_(-1) }),
+    h('strong', { text: weekLabel(S.planWk, 'en') }),
+    h('button', { class: 'btn small', type: 'button', text: 'Next →', onclick: () => go_(1) }),
+    S.planWk !== weekStart(new Date()) && h('button', { class: 'btn small', type: 'button', text: 'This week', onclick: () => go_(0) })));
+  cids.forEach(cid => {
+    const doc = (S.plans || {})[cid], subs = Object.entries((doc || {}).s || {}).filter(([, p]) => planHasContent(p));
+    const info = (P.info || {})[kids.find(k => k.split('__')[0] === cid)] || {};
+    if (cids.length > 1) sec.append(h('h3', { dir: 'auto', text: info.c || 'Class' }));
+    if (!subs.length) sec.append(h('div', { class: 'empty', text: 'No plan has been posted for this week yet.' }));
+    subs.sort((a, b) => en(subjectName(a[0])).localeCompare(en(subjectName(b[0])), 'en')).forEach(([s, p]) => sec.append(planCard(en(subjectName(s)), p, 'en')));
+  });
+  return sec;
+}
+let planUnsubs = [];
+function watchPlans() {
+  planUnsubs.forEach(u => u()); planUnsubs = []; S.plans = {};
+  const P = S.parentDoc; if (!P) return; S.planWk = S.planWk || weekStart(new Date());
+  [...new Set((P.kids || []).map(k => k.split('__')[0]))].forEach(cid =>
+    planUnsubs.push(db.doc('plans/' + planId(cid, S.planWk)).onSnapshot(s => { S.plans[cid] = s.exists ? s.data() : null; refresh(); }, () => { S.plans[cid] = null; refresh(); })));
+}
+
 /* =====================================================================
    شهادة الطالب (PDF أو صورة): بتترسم على canvas من غير أي مكتبة خارجية
    ===================================================================== */
@@ -2620,15 +2876,15 @@ function fbLogin() {
       if (e) e.preventDefault(); msg.hidden = true;
       const id = loginId(email.value);
       try {
-        try { await authM.signInWithEmailAndPassword(auth, id, pw.value); }
+        try { await authM.signInWithEmailAndPassword(auth, id, authPw(pw.value)); }
         catch (err) {
           const up = pw.value.toUpperCase();
           const bad = err && ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found'].includes(err.code);
           if (!email.value.includes('@') && bad) {
             let ok = false;
-            try { await authM.signInWithEmailAndPassword(auth, await staffEmail(email.value), pw.value); ok = true; } catch (e2) {}
+            try { await authM.signInWithEmailAndPassword(auth, await staffEmail(email.value), authPw(pw.value)); ok = true; } catch (e2) {}
             if (!ok) {
-              if (up !== pw.value) await authM.signInWithEmailAndPassword(auth, id, up);
+              if (up !== pw.value) await authM.signInWithEmailAndPassword(auth, id, authPw(up));
               else throw err;
             }
           } else throw err;
@@ -2638,8 +2894,8 @@ function fbLogin() {
     };
     const create = async () => {
       msg.hidden = true;
-      if (pw.value.length < 6) { fail('Password must be at least 6 characters.'); return; }
-      try { FB.pendingName = nm.value.trim(); await authM.createUserWithEmailAndPassword(auth, email.value.trim(), pw.value); finish(); } catch (err) { fail(authErrEn(err)); }
+      if (!pw.value) { fail('Please enter a password.'); return; }
+      try { FB.pendingName = nm.value.trim(); await authM.createUserWithEmailAndPassword(auth, email.value.trim(), authPw(pw.value)); finish(); } catch (err) { fail(authErrEn(err)); }
     };
     const reset = async () => {
       msg.hidden = true;
@@ -2656,7 +2912,7 @@ function fbLogin() {
       const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = SLIDES[n].src;
       imgs[cur].classList.remove('on'); dots[cur].classList.remove('on'); cur = n; imgs[cur].classList.add('on'); dots[cur].classList.add('on');
     };
-    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 4000); };
+    const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 2000); };
     if (imgs[0].complete) setTimeout(loadRest, 800); else imgs[0].addEventListener('load', () => setTimeout(loadRest, 800), { once: true });
     setTimeout(loadRest, 4000);
     restart();
@@ -2671,7 +2927,7 @@ function fbLogin() {
       '<h2>Our school</h2><p class="sub">A look at life on campus.</p>' +
       '<div class="lp-gal"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
       '<figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
-      '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>';
+      '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span><br><span> WEBSITE DESIGNED & DEVELOPED BY MAGICODE</span</div>';
     const copy = h('div', { class: 'lp-copy' }, h('span', { class: 'lp-eyebrow', text: 'Wiseness Language School' }),
       h('h1', { class: 'lp-title', text: 'Your academic progress, always up to date.' }),
       h('p', { class: 'lp-lead', text: 'Sign in with your email or the school code you received to follow grades and results, or to manage your classes.' }));
@@ -2760,7 +3016,7 @@ async function fbCreateUser(name, email, password, roleName) {
   const sec = FB.appM.initializeApp(FIREBASE_CONFIG, 'sec' + Date.now());       // تطبيق ثانوي عشان ما نخرجش المدير
   try {
     const sAuth = FB.authM.getAuth(sec);
-    const cred = await FB.authM.createUserWithEmailAndPassword(sAuth, email, password);
+    const cred = await FB.authM.createUserWithEmailAndPassword(sAuth, email, authPw(password));
     const uid = cred.user.uid;
     await FB.authM.signOut(sAuth);
     await write('staff/' + uid, real ? { role: roleName, name, email } : { role: roleName, name, email, user: username });
@@ -2807,7 +3063,7 @@ function staffImportCard() {
         const role = ROLE_MAP[rl.toLowerCase()] || ROLE_MAP[rl];
         const tag = (name || em || ('سطر ' + (i + 2)));
         if (!name || (em.includes('@') && !/^\S+@\S+\.\S+$/.test(em))) { skipped.push(tag + ': اسم أو إيميل غير صالح'); continue; }
-        if (pw.length < 6) { skipped.push(tag + ': كلمة المرور أقل من 6'); continue; }
+        if (!pw) { skipped.push(tag + ': كلمة المرور فاضية'); continue; }
         if (!role) { skipped.push(tag + ': الدور «' + rl + '» غير معروف'); continue; }
         const k = (em.includes('@') ? em : await staffEmail(em || name)).toLowerCase();
         if (have.has(k)) { skipped.push(tag + ': موجود في المستخدمون'); continue; }
@@ -2843,7 +3099,7 @@ function staffImportCard() {
     out.innerHTML = ''; out.append(resultView(res));
   }
   return h('div', { class: 'card' }, h('h2', { text: 'استيراد معلمين من ملف' }),
-    h('p', { class: 'note', text: 'الأعمدة: الاسم | الإيميل | كلمة المرور المبدئية (6 على الأقل). عمود الإيميل اختياري: لو فاضي أو اسم عادي، المعلم بيدخل باسمه | الدور (معلم / الكنترول / إدارة النظام). أي عمود تاني (زي الفصل) بيتجاهل. الإيميلات الموجودة بتتخطى.' }),
+    h('p', { class: 'note', text: 'الأعمدة: الاسم | الإيميل | كلمة المرور المبدئية (أي طول). عمود الإيميل اختياري: لو فاضي أو اسم عادي، المعلم بيدخل باسمه | الدور (معلم / الكنترول / إدارة النظام). أي عمود تاني (زي الفصل) بيتجاهل. الإيميلات الموجودة بتتخطى.' }),
     h('div', { class: 'form-row' }, h('label', { class: 'f' }, 'ملف Excel أو CSV', file), h('button', { class: 'btn primary', type: 'button', text: 'معاينة', onclick: preview })),
     status, out);
 }
@@ -2852,7 +3108,7 @@ async function fbLogout() { try { await FB.authM.signOut(FB.auth); } catch (e) {
 function fbAddUserCard() {
   const name = h('input', { type: 'text', id: 'fbName' });
   const email = h('input', { type: 'text', inputmode: 'email', dir: 'ltr', id: 'fbEmail', autocapitalize: 'none' });
-  const pw = h('input', { type: 'text', dir: 'ltr', id: 'fbPw', autocomplete: 'off', placeholder: '6 حروف أو أكتر' });
+  const pw = h('input', { type: 'text', dir: 'ltr', id: 'fbPw', autocomplete: 'off', placeholder: 'أي كلمة مرور' });
   const roleSel = h('select', { id: 'fbRole' }, Object.entries(ROLES).map(([k, v]) => h('option', { value: k, text: v })));
   const rEmail = h('input', { type: 'text', inputmode: 'email', dir: 'ltr', id: 'fbResetEmail', autocapitalize: 'none' });
   return h('div', {},
@@ -2864,7 +3120,7 @@ function fbAddUserCard() {
           const n = name.value.trim(), em = email.value.trim();
           if (!n) { toast('اكتب الاسم.', true); return; }
           if (em.includes('@') && !/^\S+@\S+\.\S+$/.test(em)) { toast('الإيميل غير صالح.', true); return; }
-          if (pw.value.length < 6) { toast('كلمة المرور لازم تكون 6 حروف على الأقل (حد Firebase).', true); return; }
+          if (!pw.value) { toast('اكتب كلمة المرور.', true); return; }
           try { await fbCreateUser(n, em, pw.value, roleSel.value); toast(em.includes('@') ? 'تم إنشاء الحساب. سلّم الإيميل وكلمة المرور للمستخدم.' : 'تم إنشاء الحساب. بيدخل باسم المستخدم «' + (em || n) + '» وكلمة المرور.'); name.value = ''; email.value = ''; pw.value = ''; }
           catch (e) { toast(e && e.code && e.code.startsWith('auth/') ? authErr(e) : errText(e), true); }
         } }))),
