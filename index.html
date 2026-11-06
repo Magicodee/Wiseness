@@ -94,6 +94,68 @@
     .lp-card { padding: 22px; } .lp-dots { left: 18px; bottom: 20px; }
     .lp-feats { grid-template-columns: 1fr; } .lp-more { padding: 36px 18px 16px; }
   }
+
+  /* ===== public site: nav + pages ===== */
+  .lp-nav { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line); }
+  .lp-nav-in { max-width: 1180px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 6px; height: 56px; }
+  .lp-nav a.nl { position: relative; padding: 8px 14px; font-weight: 700; font-size: .92rem; letter-spacing: .02em; color: var(--muted); text-decoration: none; border-radius: 8px; cursor: pointer; transition: color .2s, background .2s; }
+  .lp-nav a.nl:hover { color: var(--ink); background: color-mix(in srgb, var(--royal) 8%, transparent); }
+  .lp-nav a.nl.on { color: var(--ink); }
+  .lp-nav a.nl.on::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: -9px; height: 3px; border-radius: 3px; background: var(--yellow); }
+  .lp-nav .sp { flex: 1; }
+  .lp-nav .cta { background: var(--sky); color: #fff; border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: .9rem; text-decoration: none; cursor: pointer; }
+  .lp-nav .cta:hover { filter: brightness(.95); }
+  .lp-inner.one { grid-template-columns: 1fr; min-height: min(620px, calc(100vh - 150px)); }
+  .lp-inner.one .lp-copy { max-width: 40rem; }
+  .lp-btns { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+  .lp-btns a { display: inline-block; padding: 12px 26px; border-radius: 999px; font-weight: 700; text-decoration: none; cursor: pointer; font-size: .98rem; }
+  .lp-btns .b1 { background: var(--yellow); color: #1a1a1a; } .lp-btns .b2 { border: 1.5px solid rgba(255,255,255,.7); color: #fff; }
+  .lp-facts { background: #0c0f3a; color: #fff; }
+  .lp-facts-in { max-width: 1180px; margin: 0 auto; padding: 22px 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .lp-facts b { display: block; font-family: var(--display); font-size: 1.55rem; color: var(--yellow); } .lp-facts span { font-size: .88rem; color: rgba(255,255,255,.78); }
+  .lp-sec { max-width: 1180px; margin: 0 auto; padding: 64px 24px 8px; }
+  .lp-sec h2 { font-family: var(--display); font-size: 1.9rem; margin: 0 0 6px; color: var(--ink); }
+  .lp-sec h2::after { content: ""; display: block; width: 56px; height: 4px; border-radius: 2px; background: var(--yellow); margin-top: 12px; }
+  .lp-sec .sub { color: var(--muted); margin: 14px 0 30px; max-width: 46rem; line-height: 1.7; }
+  .lp-about { display: grid; grid-template-columns: .9fr 1.1fr; gap: 40px; align-items: start; }
+  .lp-about figure { margin: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 18px 44px rgba(10,20,80,.18); position: sticky; top: 84px; }
+  .lp-about figure img { display: block; width: 100%; height: auto; }
+  .lp-blocks { display: grid; gap: 16px; }
+  .lp-block { background: var(--card); border: 1px solid var(--line); border-inline-start: 4px solid var(--yellow); border-radius: 14px; padding: 20px 22px; }
+  .lp-block h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--ink); } .lp-block p { margin: 0; color: var(--muted); line-height: 1.75; font-size: .96rem; }
+  .lp-signin { margin-top: 64px; background: linear-gradient(135deg, #0c0f3a, #14186b); color: #fff; scroll-margin-top: 70px; }
+  .lp-signin-in { max-width: 1180px; margin: 0 auto; padding: 60px 24px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 52px; align-items: center; }
+  .lp-signin h2 { font-family: var(--display); font-size: 2rem; margin: 0 0 12px; color: #fff; } .lp-signin p.l { color: rgba(255,255,255,.8); line-height: 1.7; max-width: 32rem; }
+  .lp-signin .lp-points { margin-top: 20px; }
+  .lp-signin .lp-card h2 { color: var(--ink); }
+  .lp-sec .lp-gal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .lp-sec .lp-gal figure { max-width: none; } .lp-sec .lp-gal img { aspect-ratio: 4 / 3; object-fit: cover; height: 100%; }
+  @media (max-width: 860px) { .lp-sec .lp-gal { grid-template-columns: 1fr; } }
+  .ph-hero { position: relative; overflow: hidden; background: #0c0f3a; color: #fff; min-height: 340px; display: flex; align-items: flex-end; }
+  .ph-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .62; transform: scale(1.04); }
+  .ph-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,10,45,.15), rgba(8,10,45,.88)); }
+  .ph-hero .in { position: relative; z-index: 1; max-width: 1180px; width: 100%; margin: 0 auto; padding: 0 24px 40px; }
+  .ph-hero h1 { font-family: var(--display); font-size: 2.6rem; margin: 0 0 8px; color: #fff; } .ph-hero p { margin: 0; color: rgba(255,255,255,.85); max-width: 38rem; line-height: 1.7; }
+  .tg { display: flex; flex-wrap: wrap; gap: 22px; padding-bottom: 24px; }
+  .tc { flex: 1 1 230px; max-width: 270px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; transition: transform .25s, box-shadow .25s; }
+  .tc:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(10,20,80,.16); }
+  .tc .ph { aspect-ratio: 4 / 4.4; background: linear-gradient(135deg, #dbe9ff, #f2f6ff); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 2.6rem; color: var(--royal); }
+  .tc .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tc .tx { padding: 16px 18px 20px; } .tc h3 { margin: 0 0 3px; font-size: 1.05rem; color: var(--ink); } .tc .rl { color: var(--royal); font-weight: 700; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; } .tc p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.6; }
+  .sb { margin-bottom: 52px; }
+  .sb h3 { font-family: var(--display); font-size: 1.35rem; color: var(--ink); margin: 0 0 14px; display: flex; align-items: center; gap: 12px; }
+  .sb h3 em { font-style: normal; background: var(--yellow); color: #1a1a1a; border-radius: 999px; padding: 2px 14px; font-size: .9rem; }
+  .sm { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .sm figure { margin: 0; border-radius: 14px; overflow: hidden; background: #0c0f3a; aspect-ratio: 4 / 3; position: relative; }
+  .sm img, .sm video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sm .vid::after { content: "VIDEO"; position: absolute; top: 10px; left: 10px; font-size: .62rem; letter-spacing: .14em; font-weight: 800; background: rgba(0,0,0,.55); color: #fff; padding: 3px 8px; border-radius: 999px; }
+  @media (max-width: 860px) {
+    .lp-nav-in { padding: 0 12px; height: 52px; } .lp-nav a.nl { padding: 8px 10px; font-size: .84rem; }
+    .lp-about, .lp-signin-in { grid-template-columns: 1fr; gap: 28px; } .lp-about figure { position: static; }
+    .lp-signin-in { padding: 40px 18px; } .lp-sec { padding: 44px 18px 4px; } .lp-facts-in { grid-template-columns: 1fr; gap: 10px; padding: 18px; }
+    .ph-hero { min-height: 260px; } .ph-hero h1 { font-size: 1.9rem; } .tc { max-width: none; flex-basis: calc(50% - 11px); } .tc .ph { font-size: 1.8rem; }
+  }
+  @media (max-width: 420px) { .tc { flex-basis: 100%; } }
   @media (prefers-reduced-motion: reduce) { .lp-bg img { transition: opacity .01s; transform: none !important; } .lp-dots button { transition: none; } }
   :root {
     --navy: #141266; --navy-2: #1d1b86; --navy-3: #2b29a0;
@@ -2880,6 +2942,21 @@ const SLIDES = [
   { src: IMG.s3, pos: '50% 50%', alt: 'The school building' },
   { src: IMG.s4, pos: '60% 50%', alt: 'Graduation celebration at the school' }
 ];
+// ===== محتوى الموقع التعريفي: عدّل هنا بس =====
+const SITE = {
+  since: 2005,
+  teachersHero: IMG.s3,   // صورة المدرسين (بدّلها برابط Cloudinary)
+  teachers: [             // { name, role, desc, img }
+    { name: 'Teacher name', role: 'Subject', desc: 'A short line about this teacher and what they teach.', img: '' },
+    { name: 'Teacher name', role: 'Subject', desc: 'A short line about this teacher and what they teach.', img: '' },
+    { name: 'Teacher name', role: 'Subject', desc: 'A short line about this teacher and what they teach.', img: '' },
+    { name: 'Teacher name', role: 'Subject', desc: 'A short line about this teacher and what they teach.', img: '' }
+  ],
+  seniorsHero: IMG.s4,
+  seniors: [              // دفعة: { year, title, photos:[روابط], videos:[روابط mp4] }
+    { year: 'Class of 2025', title: 'Our graduates', photos: [IMG.s4, IMG.s5], videos: [] }
+  ]
+};
 function fbLogin() {
   return new Promise(resolve => {
     const { authM, auth } = FB;
@@ -2892,8 +2969,8 @@ function fbLogin() {
     const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'Your name' });
     const msg = h('div', { class: 'banner err', hidden: true, role: 'alert' });
     const fail = t => { msg.textContent = t; msg.hidden = false; };
-    let timer = null;
-    const finish = () => { if (timer) clearInterval(timer); document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
+    let timer = null, cleanup = () => {};
+    const finish = () => { if (timer) clearInterval(timer); cleanup(); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
     const login = async e => {
       if (e) e.preventDefault(); msg.hidden = true;
       const id = loginId(email.value);
@@ -2940,35 +3017,81 @@ function fbLogin() {
     restart();
     const ico = d => '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
     const IC = { check: ico('<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/>'), chart: ico('<path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/>'), shield: ico('<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2.200 2.200L15 10.500"/>'), device: ico('<rect x="3" y="5" width="14" height="10" rx="1.500"/><path d="M8 19h4m-2-4v4"/><rect x="18" y="9" width="3.500" height="9" rx=".8"/>') };
-    const more = h('section', { class: 'lp-more' });
-    more.innerHTML = '<h2>Everything in one place</h2><p class="sub">A simple, secure portal for students, parents and teachers.</p>' +
-      '<div class="lp-feats">' +
-      '<div class="lp-feat">' + IC.chart + '<h3>Live results</h3><p>Grades appear as soon as teachers record them, so progress is always up to date.</p></div>' +
-      '<div class="lp-feat">' + IC.shield + '<h3>Private and secure</h3><p>Every student and parent has a personal login and sees only their own results.</p></div>' +
-      '<div class="lp-feat">' + IC.device + '<h3>Works on any device</h3><p>Designed for phones, tablets and computers, in light and dark mode.</p></div></div>' +
-      '<h2>Our school</h2><p class="sub">A look at life on campus.</p>' +
-      '<div class="lp-gal"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" width="400" height="380" alt="Wiseness Language School logo and main building"></figure>' +
-      '<figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students in front of the school"></figure></div>' +
-      '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>';
-    const copy = h('div', { class: 'lp-copy' }, 
-      h('h1', { class: 'lp-title', text: 'Your academic progress, always up to date.' }),
-      h('p', { class: 'lp-lead', text: 'Sign in with your email or the school code you received to follow grades and results, or to manage your classes.' }));
-    const pts = h('ul', { class: 'lp-points' }); pts.innerHTML = '<li>' + IC.check + 'Grades update live as teachers record them</li><li>' + IC.check + 'Separate secure access for students, parents and staff</li>';
-    copy.append(pts);
-    v.append(h('div', { class: 'lp', dir: 'ltr', lang: 'en' },
-      h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }),
-        h('div', { class: 'lp-inner' }, copy,
-          h('div', { class: 'lp-side' }, h('div', { class: 'lp-card' },
-            h('h2', { text: 'Sign in' }), h('p', { class: 'lp-hint', text: 'Welcome back. Enter your details to continue.' }),
-            h('form', { onsubmit: login }, msg,
-              h('label', { class: 'f' }, 'Email or school code', email), h('label', { class: 'f', style: 'margin-top:12px' }, 'Password', pw),
-              h('div', { class: 'acts', style: 'margin-top:18px' }, h('button', { class: 'btn primary', type: 'submit', text: 'Log in' }), h('button', { class: 'btn', type: 'button', text: 'Forgot password?', onclick: reset }))),
-            h('details', { class: 'lp-first' }, h('summary', { text: 'First time here? Create the admin account' }),
-              h('p', { class: 'note', text: 'Enter your email and password above, type your name below, then press Create. The first account created becomes the system owner. Other users are added by the owner.' }),
-              h('label', { class: 'f' }, 'Your name', nm),
-              h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn', type: 'button', text: 'Create admin account', onclick: create })))))),
-        h('div', { class: 'lp-dots' }, dots)),
-      more));
+    const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+    const foot = () => mk('div', 'lp-more', '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>');
+    const A = SITE.since;
+    // ---------- Home ----------
+    const home = mk('div', 'pg');
+    const heroCopy = mk('div', 'lp-copy', '<div class="lp-eyebrow">Since ' + A + '</div><h1 class="lp-title">Wiseness Language School</h1><div class="lp-for">For preparatory &amp; secondary</div>' +
+      '<p class="lp-lead">A school where children grow in knowledge, character and confidence, and leave ready for whatever comes next.</p>' +
+      '<div class="lp-btns"><a class="b1" data-go="login">Sign in</a><a class="b2" data-go="about">About the school</a></div>');
+    home.append(h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }), h('div', { class: 'lp-inner one' }, heroCopy), h('div', { class: 'lp-dots' }, dots)));
+    home.append(mk('div', 'lp-facts', '<div class="lp-facts-in"><div><b>' + A + '</b><span>The year we opened our doors</span></div><div><b>Prep &amp; Secondary</b><span>Two stages, one caring community</span></div><div><b>21st-century skills</b><span>Knowledge paired with values</span></div></div>'));
+    const about = mk('section', 'lp-sec', '<h2>About the school</h2><p class="sub">Since ' + A + ', Wiseness Language School has prepared its students to step into the world with solid knowledge, modern skills and strong values, while staying close to their culture and roots. We nurture a love of learning, encourage curiosity, and give every child a firm foundation to build on.</p>' +
+      '<div class="lp-about"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" alt="Wiseness Language School main building"></figure><div class="lp-blocks">' +
+      '<div class="lp-block"><h3>Our story</h3><p>Founded in ' + A + ', the school began with a simple promise: to give students a solid foundation and the confidence to build on it. Today that promise guides every classroom, every teacher and every school day.</p></div>' +
+      '<div class="lp-block"><h3>Our vision</h3><p>To shape capable, confident and responsible people who pursue their goals. We do this in a warm, safe and supportive place where every student is treated equally and every achievement is celebrated. A happy child is a successful one, and we want every learner to enjoy learning for life.</p></div>' +
+      '<div class="lp-block"><h3>Our goal</h3><p>To equip students with the skills and mindset to thrive, and to meet the challenges of the world with courage.</p></div>' +
+      '<div class="lp-block"><h3>Our strategy</h3><p>We build a lively, creative community of learners who grow intellectually, emotionally and physically. We help each student reach high academic standards, widen their abilities and become a productive, ethical and caring member of society.</p></div></div></div>');
+    about.id = 'lp-about'; home.append(about);
+    const sec = mk('section', 'lp-sec', '<h2>Life on campus</h2><p class="sub">A look at our school and the students who make it special.</p><div class="lp-gal"><figure><img src="' + IMG.s2 + '" loading="lazy" decoding="async" width="400" height="300" alt="School campus and buses"></figure><figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students"></figure><figure><img src="' + IMG.s3 + '" loading="lazy" decoding="async" width="400" height="300" alt="The school building"></figure></div>');
+    home.append(sec);
+    const signin = mk('section', 'lp-signin'); signin.id = 'lp-login';
+    const sl = mk('div', null, '<h2>Student, parent &amp; staff portal</h2><p class="l">Sign in with your email or the school code you received to follow grades and the weekly plan, or to manage your classes.</p>');
+    const pts = h('ul', { class: 'lp-points' }); pts.innerHTML = '<li>' + IC.check + 'Grades update live as teachers record them</li><li>' + IC.check + 'The weekly plan for every subject, in one place</li><li>' + IC.check + 'Separate secure access for students, parents and staff</li>';
+    sl.append(pts);
+    signin.append(h('div', { class: 'lp-signin-in' }, sl, h('div', { class: 'lp-side' }, h('div', { class: 'lp-card' },
+      h('h2', { text: 'Sign in' }), h('p', { class: 'lp-hint', text: 'Welcome back. Enter your details to continue.' }),
+      h('form', { onsubmit: login }, msg,
+        h('label', { class: 'f' }, 'Email or school code', email), h('label', { class: 'f', style: 'margin-top:12px' }, 'Password', pw),
+        h('div', { class: 'acts', style: 'margin-top:18px' }, h('button', { class: 'btn primary', type: 'submit', text: 'Log in' }), h('button', { class: 'btn', type: 'button', text: 'Forgot password?', onclick: reset }))),
+      h('details', { class: 'lp-first' }, h('summary', { text: 'First time here? Create the admin account' }),
+        h('p', { class: 'note', text: 'Enter your email and password above, type your name below, then press Create. The first account created becomes the system owner. Other users are added by the owner.' }),
+        h('label', { class: 'f' }, 'Your name', nm),
+        h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn', type: 'button', text: 'Create admin account', onclick: create })))))));
+    home.append(signin, foot());
+    // ---------- Teachers ----------
+    const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const teachers = mk('div', 'pg');
+    teachers.append(mk('section', 'ph-hero', '<img src="' + esc(SITE.teachersHero) + '" alt="Our teachers" decoding="async"><div class="in"><h1>Our Teachers</h1><p>The people who inspire our students every day, with experience, patience and a real passion for teaching.</p></div>'));
+    const tg = mk('div', 'tg');
+    SITE.teachers.forEach(t => tg.append(mk('article', 'tc', '<div class="ph">' + (t.img ? '<img src="' + esc(t.img) + '" loading="lazy" decoding="async" alt="' + esc(t.name) + '">' : esc((t.name || '?').trim().charAt(0).toUpperCase())) + '</div><div class="tx"><h3>' + esc(t.name) + '</h3><div class="rl">' + esc(t.role) + '</div><p>' + esc(t.desc) + '</p></div>')));
+    const ts = mk('section', 'lp-sec'); ts.append(tg); teachers.append(ts, foot());
+    // ---------- Seniors ----------
+    const seniors = mk('div', 'pg');
+    seniors.append(mk('section', 'ph-hero', '<img src="' + esc(SITE.seniorsHero) + '" alt="Our graduates" decoding="async"><div class="in"><h1>Seniors</h1><p>Our graduating classes: the memories, the celebrations and the next chapter.</p></div>'));
+    const ss = mk('section', 'lp-sec'); const vids = [];
+    SITE.seniors.forEach(b => {
+      const box = mk('div', 'sb', '<h3><em>' + esc(b.year) + '</em>' + esc(b.title) + '</h3>'); const g = mk('div', 'sm');
+      (b.videos || []).forEach(u => { const f = mk('figure', 'vid'); const vd = h('video', { muted: true, loop: true, playsinline: true, preload: 'none', 'aria-label': b.year + ' video' }); vd.muted = true; vd.setAttribute('playsinline', ''); vd.dataset.src = u; f.append(vd); g.append(f); vids.push(vd); });
+      (b.photos || []).forEach(u => g.append(mk('figure', null, '<img src="' + esc(u) + '" loading="lazy" decoding="async" alt="' + esc(b.year) + '">')));
+      box.append(g); ss.append(box);
+    });
+    seniors.append(ss, foot());
+    let vio = null;
+    if ('IntersectionObserver' in window && vids.length) {
+      vio = new IntersectionObserver(es => es.forEach(en => { const vd = en.target; if (en.isIntersecting) { if (!vd.src) vd.src = vd.dataset.src; vd.play().catch(() => {}); } else vd.pause(); }), { threshold: .35 });
+      vids.forEach(vd => vio.observe(vd));
+    }
+    // ---------- nav + routing ----------
+    const pages = { home, teachers, seniors };
+    const nav = mk('nav', 'lp-nav'); nav.setAttribute('aria-label', 'Main');
+    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span><a class="cta" data-go="login">Sign in</a></div>';
+    const route = () => {
+      const r = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; const k = pages[r] ? r : 'home';
+      Object.keys(pages).forEach(n => { pages[n].hidden = n !== k; });
+      nav.querySelectorAll('a.nl').forEach(a => a.classList.toggle('on', a.dataset.r === k));
+      return k;
+    };
+    const goto = id => { if (route() !== 'home') { location.hash = '#/'; route(); } setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); };
+    const onClick = e => { const a = e.target.closest('a[data-r],a[data-go]'); if (!a) return; e.preventDefault(); if (a.dataset.r) { location.hash = a.dataset.r === 'home' ? '#/' : '#/' + a.dataset.r; window.scrollTo(0, 0); } else goto(a.dataset.go === 'login' ? 'lp-login' : 'lp-about'); };
+    const onHash = () => { route(); };
+    window.addEventListener('hashchange', onHash);
+    const lp = h('div', { class: 'lp', dir: 'ltr', lang: 'en' }, nav, home, teachers, seniors);
+    lp.addEventListener('click', onClick);
+    cleanup = () => { window.removeEventListener('hashchange', onHash); if (vio) vio.disconnect(); };
+    route();
+    v.append(lp);
     endSplash();
     if (window.innerWidth > 820) email.focus();
   });
