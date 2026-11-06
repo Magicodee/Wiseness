@@ -144,6 +144,19 @@
   .tc .ph { aspect-ratio: 4 / 4.4; background: linear-gradient(135deg, #dbe9ff, #f2f6ff); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 2.6rem; color: var(--royal); }
   .tc .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .tc .tx { padding: 16px 18px 20px; } .tc h3 { margin: 0 0 3px; font-size: 1.05rem; color: var(--ink); } .tc .rl { color: var(--royal); font-weight: 700; font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; } .tc p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.6; }
+  .cl { list-style: none; margin: 0; padding: 0 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 22px; }
+  .cl li { margin: 0; }
+  .cl a { display: block; height: 100%; border-radius: 20px; overflow: hidden; background: #0c0f3a; color: #fff; text-decoration: none; box-shadow: 0 10px 30px rgba(10,20,80,.16); transition: transform .3s, box-shadow .3s; cursor: pointer; }
+  .cl a:hover, .cl a:focus-visible { transform: translateY(-6px); box-shadow: 0 22px 46px rgba(10,20,80,.28); outline: none; }
+  .cl .cv { aspect-ratio: 4 / 3; overflow: hidden; position: relative; }
+  .cl .cv img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s; }
+  .cl a:hover .cv img { transform: scale(1.07); }
+  .cl .cv::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(12,15,58,.55)); }
+  .cl .ct { padding: 16px 20px 18px; }
+  .cl .yr { font-family: var(--display); font-size: 2rem; font-weight: 800; line-height: 1.1; }
+  .cl .cc { color: var(--yellow); font-weight: 700; font-size: .74rem; letter-spacing: .14em; margin: 4px 0 10px; }
+  .cl .vm { font-size: .85rem; color: rgba(255,255,255,.85); display: inline-flex; gap: 6px; align-items: center; } .cl .vm i { font-style: normal; transition: transform .25s; } .cl a:hover .vm i { transform: translateX(5px); }
+  .sback { display: inline-flex; gap: 6px; align-items: center; margin-bottom: 18px; font-weight: 700; color: var(--royal); text-decoration: none; cursor: pointer; }
   .sb { margin-bottom: 52px; }
   .sb h3 { font-family: var(--display); font-size: 1.35rem; color: var(--ink); margin: 0 0 14px; display: flex; align-items: center; gap: 12px; }
   .sb h3 em { font-style: normal; background: var(--yellow); color: #1a1a1a; border-radius: 999px; padding: 2px 14px; font-size: .9rem; }
@@ -2956,8 +2969,11 @@ const SITE = {
     { name: 'Teacher name', role: 'Subject', desc: 'A short line about this teacher and what they teach.', img: '' }
   ],
   seniorsHero: IMG.s4,
-  seniors: [              // دفعة: { year, title, photos:[روابط], videos:[روابط mp4] }
-    { year: 'Class of 2025', title: 'Our graduates', photos: [IMG.s4, IMG.s5], videos: [] }
+  seniors: [              // آخر 3-4 دفعات: { year, cover, photos:[روابط], videos:[روابط mp4] }
+    { year: 2026, cover: IMG.s4, photos: [IMG.s4, IMG.s5], videos: [] },
+    { year: 2025, cover: IMG.s5, photos: [IMG.s5, IMG.s4], videos: [] },
+    { year: 2024, cover: IMG.s2, photos: [IMG.s2, IMG.s3], videos: [] },
+    { year: 2023, cover: IMG.s3, photos: [IMG.s3, IMG.s2], videos: [] }
   ]
 };
 function fbLogin() {
@@ -3064,11 +3080,17 @@ function fbLogin() {
     const seniors = mk('div', 'pg');
     seniors.append(mk('section', 'ph-hero', '<img src="' + esc(SITE.seniorsHero) + '" alt="Our graduates" decoding="async"><div class="in"><h1>Seniors</h1><p>Our graduating classes: the memories, the celebrations and the next chapter.</p></div>'));
     const ss = mk('section', 'lp-sec'); const vids = [];
+    const sList = mk('div', 'sl', '<h2 style="margin-bottom:26px">Graduation archive</h2>');
+    const cl = mk('ul', 'cl');
+    SITE.seniors.forEach(b => cl.append(mk('li', null, '<a data-cls="' + esc(b.year) + '" href="#/seniors/' + esc(b.year) + '"><div class="cv"><img src="' + esc(b.cover || (b.photos || [])[0] || '') + '" loading="lazy" decoding="async" alt="Class of ' + esc(b.year) + '"></div><div class="ct"><div class="yr">' + esc(b.year) + '</div><div class="cc">CLASS OF ' + esc(b.year) + '</div><span class="vm">View memories <i>&rarr;</i></span></div></a>')));
+    sList.append(cl);
+    const sDet = mk('div', 'sd'); sDet.hidden = true;
+    ss.append(sList, sDet);
     SITE.seniors.forEach(b => {
-      const box = mk('div', 'sb', '<h3><em>' + esc(b.year) + '</em>' + esc(b.title) + '</h3>'); const g = mk('div', 'sm');
-      (b.videos || []).forEach(u => { const f = mk('figure', 'vid'); const vd = h('video', { muted: true, loop: true, playsinline: true, preload: 'none', 'aria-label': b.year + ' video' }); vd.muted = true; vd.setAttribute('playsinline', ''); vd.dataset.src = u; f.append(vd); g.append(f); vids.push(vd); });
-      (b.photos || []).forEach(u => g.append(mk('figure', null, '<img src="' + esc(u) + '" loading="lazy" decoding="async" alt="' + esc(b.year) + '">')));
-      box.append(g); ss.append(box);
+      const box = mk('div', 'sb', '<a class="sback" href="#/seniors">&larr; All classes</a><h3><em>Class of ' + esc(b.year) + '</em></h3>'); box.hidden = true; box.dataset.cls = b.year; const g = mk('div', 'sm');
+      (b.videos || []).forEach(u => { const f = mk('figure', 'vid'); const vd = h('video', { muted: true, loop: true, playsinline: true, preload: 'none', 'aria-label': 'Class of ' + b.year + ' video' }); vd.muted = true; vd.setAttribute('playsinline', ''); vd.dataset.src = u; f.append(vd); g.append(f); vids.push(vd); });
+      (b.photos || []).forEach(u => g.append(mk('figure', null, '<img src="' + esc(u) + '" loading="lazy" decoding="async" alt="Class of ' + esc(b.year) + '">')));
+      box.append(g); sDet.append(box);
     });
     seniors.append(ss, foot());
     let vio = null;
@@ -3076,19 +3098,24 @@ function fbLogin() {
       vio = new IntersectionObserver(es => es.forEach(en => { const vd = en.target; if (en.isIntersecting) { if (!vd.src) vd.src = vd.dataset.src; vd.play().catch(() => {}); } else vd.pause(); }), { threshold: .35 });
       vids.forEach(vd => vio.observe(vd));
     }
+    const showClass = y => {
+      const has = y != null && SITE.seniors.some(b => String(b.year) === y);
+      sList.hidden = has; sDet.hidden = !has;
+      sDet.querySelectorAll('.sb').forEach(bx => { bx.hidden = bx.dataset.cls !== y; });
+    };
     // ---------- nav + routing ----------
     const pages = { home, teachers, seniors };
     const nav = mk('nav', 'lp-nav'); nav.setAttribute('aria-label', 'Main');
     nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span><a class="cta" data-go="login">Sign in</a></div>';
     const route = () => {
-      const r = (location.hash || '').replace(/^#\/?/, '').split('/')[0]; const k = pages[r] ? r : 'home';
+      const parts = (location.hash || '').replace(/^#\/?/, '').split('/'); const r = parts[0]; const k = pages[r] ? r : 'home'; if (k === 'seniors') showClass(parts[1] || null);
       Object.keys(pages).forEach(n => { pages[n].hidden = n !== k; });
       nav.querySelectorAll('a.nl').forEach(a => a.classList.toggle('on', a.dataset.r === k));
       return k;
     };
     const goto = id => { if (route() !== 'home') { location.hash = '#/'; route(); } setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); };
     const onClick = e => { const a = e.target.closest('a[data-r],a[data-go]'); if (!a) return; e.preventDefault(); if (a.dataset.r) { location.hash = a.dataset.r === 'home' ? '#/' : '#/' + a.dataset.r; window.scrollTo(0, 0); } else goto(a.dataset.go === 'login' ? 'lp-login' : 'lp-about'); };
-    const onHash = () => { route(); };
+    const onHash = () => { if (route() !== 'home') window.scrollTo(0, 0); };
     window.addEventListener('hashchange', onHash);
     const lp = h('div', { class: 'lp', dir: 'ltr', lang: 'en' }, nav, home, teachers, seniors);
     lp.addEventListener('click', onClick);
