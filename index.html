@@ -172,6 +172,61 @@
   }
   @media (max-width: 560px) { .lp-facts-in { grid-template-columns: 1fr; gap: 10px; } }
   @media (max-width: 420px) { .tc { flex-basis: 100%; } }
+
+  /* ===== واجهة الطالب وولي الأمر ===== */
+  body.pm { display: grid; grid-template-columns: 208px minmax(0, 1fr); grid-template-rows: auto auto 1fr auto; grid-template-areas: "side strip" "side top" "side view" "side foot"; min-height: 100vh; }
+  body.pm .pm-side { grid-area: side; background: linear-gradient(180deg, #0b2377 0%, #081650 100%); color: #fff; }
+  body.pm .strip-top { grid-area: strip; } body.pm header.top { grid-area: top; position: static; } body.pm main { grid-area: view; width: 100%; max-width: 1240px; padding: 22px 28px 36px; } body.pm .site-foot { grid-area: foot; }
+  body.pm .tabwrap { display: none; }
+  .pm-in { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 22px 12px 18px; }
+  .pm-logo { display: flex; justify-content: center; margin: 0 0 26px; } .pm-logo img { width: 100px; height: 100px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.18); }
+  .pm-nav { display: flex; flex-direction: column; gap: 6px; }
+  .pm-nav button { display: flex; align-items: center; gap: 14px; width: 100%; padding: 13px 16px; border: 0; border-radius: 10px; background: transparent; color: rgba(255,255,255,.88); font: 600 .95rem var(--font); cursor: pointer; text-align: start; transition: background .2s, color .2s; }
+  .pm-nav button:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .pm-nav button.on { background: #0a73e6; color: #fff; box-shadow: 0 6px 16px rgba(10,115,230,.45); }
+  .pm-nav button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .pm-foot { margin-top: auto; text-align: center; color: rgba(255,255,255,.55); font-size: .72rem; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .pm-banner { position: relative; overflow: hidden; border-radius: 16px; padding: 30px 34px; color: #fff; background: linear-gradient(100deg, #0a39c4 0%, #0a6fe8 55%, #1aa6f0 100%); box-shadow: 0 12px 30px rgba(10,80,220,.28); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .pm-banner::before { content: ""; position: absolute; right: -60px; top: -90px; width: 380px; height: 380px; border-radius: 50%; background: rgba(255,255,255,.1); }
+  .pm-banner::after { content: ""; position: absolute; right: 120px; bottom: -150px; width: 360px; height: 300px; border-radius: 50%; background: rgba(255,255,255,.07); }
+  .pm-banner > * { position: relative; z-index: 1; }
+  .pm-banner h1 { margin: 0 0 4px; font: 800 clamp(1.5rem, 3vw, 2.2rem)/1.2 var(--display); color: #fff; } .pm-banner p { margin: 0; opacity: .92; }
+  .pm-banner .cap { color: rgba(255,255,255,.9); flex: none; }
+  .pm-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; box-shadow: 0 8px 24px rgba(20,18,102,.06); margin-top: 18px; }
+  .pm-card h2 { margin: 0; font: 800 1.35rem var(--display); color: var(--navy); }
+  .pm-gh, .pm-ph { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .pm-gt { flex: 1 1 200px; min-width: 0; } .pm-gt p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; } .pm-gt .pm-kid { color: var(--ink); font-weight: 600; }
+  .pm-trophy { flex: none; width: 112px; height: 112px; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #fff0bd, #ffd56b 62%, #ffc94a); display: flex; align-items: center; justify-content: center; color: #b97a00; box-shadow: 0 0 0 14px rgba(255,205,90,.18); margin: 6px 14px 6px 6px; }
+  .pm-pic { flex: none; width: 48px; height: 48px; border-radius: 12px; background: #0a6fe8; color: #fff; display: flex; align-items: center; justify-content: center; }
+  .pm-btn { border: 1.5px solid #0a39c4; background: transparent; color: #0a39c4; border-radius: 10px; padding: 9px 18px; font: 700 .88rem var(--font); cursor: pointer; white-space: nowrap; transition: background .2s, color .2s; }
+  .pm-btn:hover { background: #0a39c4; color: #fff; } :root[data-theme="dark"] .pm-btn { color: var(--ink); border-color: var(--ink); } :root[data-theme="dark"] .pm-btn:hover { background: var(--ink); color: #06122e; }
+  .pm-pn { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pm-gr { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); margin-top: 18px; }
+  .pm-g { padding: 6px 16px 12px; text-align: center; border-inline-start: 1px solid var(--line); } .pm-g:first-child { border-inline-start: 0; }
+  .pm-g .nm { font-weight: 600; color: var(--text); } .pm-g .sc { font: 800 2.1rem/1.2 var(--display); color: var(--navy); } .pm-g .sc small { font: 500 .9rem var(--font); color: var(--muted); }
+  .pm-g i { display: block; height: 4px; border-radius: 4px; margin: 10px auto 0; width: 72%; background: var(--c); }
+  .pm-cls { margin: 18px 0 0; font-size: 1rem; color: var(--ink); }
+  .pm-day { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 12px; margin-top: 12px; align-items: stretch; }
+  .pm-chip { border-radius: 12px; background: var(--head); border: 1px solid var(--line); color: var(--ink); text-align: center; font-weight: 700; display: flex; flex-direction: column; justify-content: center; padding: 8px 4px; line-height: 1.2; }
+  .pm-chip b { font-size: 1.15rem; } .pm-chip.today { background: #0a6fe8; color: #fff; border-color: #0a6fe8; box-shadow: 0 6px 14px rgba(10,111,232,.35); }
+  .pm-dc { border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; justify-content: center; background: color-mix(in srgb, var(--head) 30%, var(--card)); }
+  .pm-dc .it { display: flex; gap: 10px; align-items: baseline; line-height: 1.5; } .pm-dc .it::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #0a6fe8; transform: translateY(-2px); }
+  .pm-dc .it b { color: var(--ink); flex: none; } .pm-dc.none { color: var(--muted); } .pm-dc.none .it::before { background: var(--line-strong); }
+  .pm-extra { margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--line); } .pm-extra h3 { margin: 0 0 10px; font-size: 1.05rem; color: var(--navy); }
+  .pm-x { margin-bottom: 10px; } .pm-x b { color: var(--ink); } .pm-x p { margin: 2px 0 0; color: var(--text); } .pm-x em { font-style: normal; color: var(--muted); }
+  .pm-prof { display: flex; align-items: center; gap: 18px; margin-bottom: 14px; } .pm-av { width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #0a39c4, #1aa6f0); color: #fff; font: 800 1.9rem var(--display); display: flex; align-items: center; justify-content: center; flex: none; } .pm-sub { margin: 0; color: var(--muted); }
+  .pm-dl { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin: 0; } .pm-dl dt, .pm-dl dd { margin: 0; padding: 11px 0; border-top: 1px solid var(--line); } .pm-dl dt { color: var(--muted); padding-inline-end: 28px; } .pm-dl dd { font-weight: 600; word-break: break-word; }
+  .pm-set { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--line); flex-wrap: wrap; } .pm-card h2 + .pm-set { margin-top: 12px; } .pm-set p { margin: 2px 0 0; color: var(--muted); font-size: .9rem; }
+  @media (max-width: 860px) {
+    body.pm { display: block; padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+    body.pm .pm-side { position: fixed; inset: auto 0 0 0; z-index: 60; box-shadow: 0 -6px 20px rgba(8,22,80,.3); }
+    .pm-in { position: static; height: auto; padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); } .pm-logo, .pm-foot { display: none; }
+    .pm-nav { flex-direction: row; gap: 2px; } .pm-nav button { flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 8px 2px; font-size: .7rem; border-radius: 10px; text-align: center; } .pm-nav button svg { width: 22px; height: 22px; }
+    body.pm main { padding: 14px 14px 28px; } .pm-banner { padding: 22px 20px; } .pm-banner .cap svg { width: 56px; height: 56px; } .pm-card { padding: 18px 16px; }
+    .pm-trophy { width: 80px; height: 80px; box-shadow: 0 0 0 9px rgba(255,205,90,.18); margin: 4px 10px 4px 4px; } .pm-trophy svg { width: 38px; height: 38px; }
+    .pm-gr { grid-template-columns: repeat(2, 1fr); gap: 4px 0; } .pm-g:nth-child(odd) { border-inline-start: 0; } .pm-g { padding: 10px 8px 12px; }
+    .pm-day { grid-template-columns: 62px minmax(0, 1fr); gap: 10px; } .pm-dc { padding: 10px 12px; } .pm-dc .it { flex-wrap: wrap; }
+  }
   @media (prefers-reduced-motion: reduce) { .lp-bg img { transition: opacity .01s; transform: none !important; } .lp-dots button { transition: none; } }
   :root {
     --navy: #141266; --navy-2: #1d1b86; --navy-3: #2b29a0;
@@ -301,6 +356,7 @@
   .pill { display: inline-block; padding: 1px 10px; border-radius: 99px; font-size: .8rem; font-weight: 600; border: 1px solid; white-space: nowrap; }
   .pill.locked { background: var(--ok-bg); color: var(--ok); border-color: var(--ok-line); }
   .pill.open { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-line); }
+  .pill.off { background: var(--bad-bg); color: var(--bad); border-color: var(--bad-line); }
   .pill.idle { background: var(--head); color: var(--muted); border-color: var(--line); }
   .banner { padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: .92rem; border: 1px solid; }
   .banner.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-line); }
@@ -897,6 +953,8 @@ function subscribeAll() {
   db.collection('locks').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.locks = o; markLoaded('locks'); }, subErr);
   db.collection('status').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.status = o; markLoaded('status'); }, subErr);
   db.collection('staff').onSnapshot(q => { const o = {}; q.docs.forEach(d => { o[d.id] = d.data(); }); S.staff = o; markLoaded('staff'); }, subErr);
+  // حسابات الطلاب الموقوفة (للكنترول بس؛ لو مفيش صلاحية بنتجاهل)
+  db.collection('parents').where('off', '==', true).onSnapshot(q => { const o = new Set(); q.docs.forEach(d => ((d.data().kids) || []).forEach(k => o.add(k))); S.offKids = o; refresh(); }, () => {});
 }
 const ready = () => (S.parentMode ? ['cfg', 'subjects', 'pdoc'] : ['cfg', 'subjects', 'classes', 'assign', 'status', 'locks', 'staff']).every(k => S.loaded[k]);
 
@@ -935,6 +993,7 @@ document.addEventListener('focusout', () => {
 });
 
 function header() {
+  if (S.parentMode) { document.body.classList.add('pm'); pmSide(); }
   $('#schoolName').textContent = S.parentMode ? (S.cfg ? schoolNameEn() : 'W.L.S prep&secondary') : (S.cfg ? schoolName() : 'W.L.S prep&secondary');
   $('#termLine').textContent = S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – ' + S.cfg.year : '')) : '';
   document.title = S.parentMode ? (S.cfg ? schoolNameEn() : 'W.L.S prep&secondary') : (S.cfg ? schoolName() : 'W.L.S prep&secondary');
@@ -1134,8 +1193,8 @@ function makeSheet(cid, sid, root) {
   const statsEl = h('div', { class: 'stats' });
   const pillEl = h('span', { class: 'pill open' });
   const metaEl = h('div', { class: 'sheet-meta' });
-  const btnLock = h('button', { class: 'btn small', type: 'button', text: 'اعتماد الكشف', onclick: lockSheet });
-  const btnUnlock = h('button', { class: 'btn small', type: 'button', text: 'فتح الكشف للتعديل', onclick: unlockSheet });
+  const btnLock = h('button', { class: 'btn small primary', type: 'button', text: 'اعتماد ونشر للطلاب', onclick: lockSheet });
+  const btnUnlock = h('button', { class: 'btn small', type: 'button', text: 'إلغاء الاعتماد وفتح الكشف', onclick: unlockSheet });
   const saveEl = h('span', { class: 'savestate', id: 'saveState' });
   const wrapEl = h('div', { class: 'wrap' }, gridEl);
 
@@ -1257,12 +1316,12 @@ function makeSheet(cid, sid, root) {
     metaEl.innerHTML = '';
     metaEl.append(h('span', {}, 'المعلم: ', h('b', { text: nameOf(teacherOf(cid, sid)) })), h('span', { text: (S.cfg.term || '') + (S.cfg.year ? ' – ' + S.cfg.year : '') }), pillEl,
       h('span', { class: 'legend' }, h('i', { class: 'sw' }), 'خانة إدخال', h('i', { class: 'sw hl' }), 'محسوبة تلقائيًا'));
-    btnLock.hidden = locked || !(editable || isStaff() || teacherOf(cid, sid) === S.me.id);
+    btnLock.hidden = locked || !isStaff();
     btnUnlock.hidden = !(locked && isStaff());
     root.classList.toggle('readonly', !editable);
     if (built) gridEl.querySelectorAll('input.c').forEach(i => { i.readOnly = !editable; });
-    if (locked && !editable && !statusEl.dataset.keep) { statusEl.textContent = 'الكشف معتمد ومقفول. للتعديل تواصل مع الكنترول.'; statusEl.classList.remove('err'); }
-    else if (!statusEl.classList.contains('err') && editable) statusEl.textContent = '';
+    if (locked && !editable && !statusEl.dataset.keep) { statusEl.textContent = 'الكشف معتمد من إدارة النظام ومقفول. للتعديل تواصل مع الكنترول.'; statusEl.classList.remove('err'); }
+    else if (!statusEl.classList.contains('err') && editable) statusEl.textContent = isStaff() ? '' : 'الدرجات مش بتظهر للطلاب وأولياء الأمور غير بعد ما إدارة النظام تعتمد الكشف.';
   }
 
   /* ---------- الحفظ ---------- */
@@ -1275,7 +1334,7 @@ function makeSheet(cid, sid, root) {
     const old = typeof (serverV[id0] || {})[key] === 'number' ? serverV[id0][key] : null;
     if (old === nv) return;
     write(path, { v: { [id0]: { [key]: nv } }, m: { [id0]: [S.me.id, Date.now()] } });
-        write('pg/' + cid + '__' + id0 + '__' + sid, { k: cid + '__' + id0, cid, sid, st: id0, v: { [key]: nv }, t: Date.now() });
+    if (isLocked(cid, sid)) write('pg/' + cid + '__' + id0 + '__' + sid, { k: cid + '__' + id0, cid, sid, st: id0, v: { [key]: nv }, t: Date.now() });   // الكشف معتمد: أي تعديل بيتنشر
     serverV[id0] = Object.assign({}, serverV[id0] || {}, { [key]: nv });
     if ((old !== null) || isLocked(cid, sid)) logAudit({ a: cid, s: sid, st: id0, k: key, o: old, n: nv });
     clearTimeout(progTimer);
@@ -1319,17 +1378,19 @@ function makeSheet(cid, sid, root) {
   async function lockSheet() {
     if (inflight || failedWrites) { statusEl.textContent = 'استنى لحد ما كل الدرجات تتحفظ وبعدين اعتمد الكشف.'; statusEl.classList.add('err'); return; }
     const incomplete = roster.length * keys.length - filledCount();
-    let msg = 'بعد الاعتماد مش هتقدر تعدّل الدرجات، والكنترول بس هو اللي يفتح الكشف.';
+    let msg = 'بعد الاعتماد الدرجات هتظهر للطلاب وأولياء الأمور، والكشف هيتقفل على المعلم.';
     if (incomplete > 0) msg = 'فيه ' + incomplete + ' خانة لسه فاضية.\n' + msg;
     if (!(await confirmBox(msg + '\nتعتمد الكشف؟', 'اعتماد'))) return;
     await write('status/' + cid, { m: { [sid]: { f: filledCount() } } });
     await write('locks/' + cid + '__' + sid, { l: 1, lb: S.me.id, lt: Date.now() });
+    try { await publishSheetGrades(cid, sid, serverV); toast('اتعتمد الكشف واتنشرت الدرجات للطلاب.'); } catch (e) { toast('اتعتمد الكشف لكن النشر للطلاب فشل: ' + errText(e) + ' (جرّب مزامنة الدرجات من أولياء الأمور).', true); }
     logAudit({ a: cid, s: sid, x: 'lock' });
   }
   async function unlockSheet() {
-    if (!(await confirmBox('فتح الكشف للتعديل؟ العملية بتتسجل في سجل التعديلات.', 'فتح'))) return;
+    if (!(await confirmBox('فتح الكشف للتعديل؟ الدرجات هتتشال من عند الطلاب وأولياء الأمور لحد ما تعتمد الكشف تاني. العملية بتتسجل في سجل التعديلات.', 'فتح'))) return;
     await write('locks/' + cid + '__' + sid, { l: 0, lb: S.me.id, lt: Date.now() });
     if (statusOf(cid, sid).l) await write('status/' + cid, { m: { [sid]: { l: 0 } } });
+    try { await unpublishSheetGrades(cid, sid); } catch (e) { toast('اتفتح الكشف لكن سحب الدرجات من الطلاب فشل: ' + errText(e), true); }
     logAudit({ a: cid, s: sid, x: 'unlock' });
   }
 
@@ -1402,7 +1463,7 @@ function pageClass() {
       const inp = h('input', { type: 'text', value: s.name, 'aria-label': 'اسم الطالب' });
       return h('tr', { class: s.on === 0 ? 'arch' : '' }, h('td', { text: s.seat || '' }),
         h('td', {}, inp),
-        h('td', {}, s.on === 0 ? h('span', { class: 'pill idle', text: 'مؤرشف' }) : h('span', { class: 'pill open', text: 'فعّال' })),
+        h('td', {}, s.on === 0 ? h('span', { class: 'pill idle', text: 'مؤرشف' }) : (S.offKids && S.offKids.has(cid + '__' + s.id)) ? h('span', { class: 'pill off', text: 'غير فعّال (موقوف)' }) : h('span', { class: 'pill open', text: 'فعّال' })),
         h('td', { class: 'row-actions' },
           h('button', { class: 'btn small', type: 'button', text: 'حفظ الاسم', onclick: () => { const n = cleanName(inp.value); if (!n) return; saveStudents(all.map(x => x.id === s.id ? Object.assign({}, x, { name: n }) : x), 'تعديل اسم طالب'); toast('تم حفظ الاسم.'); } }),
           h('button', { class: 'btn small', type: 'button', text: s.on === 0 ? 'إعادة تفعيل' : 'أرشفة', onclick: () => saveStudents(all.map(x => x.id === s.id ? Object.assign({}, x, { on: s.on === 0 ? 1 : 0 }) : x), (s.on === 0 ? 'إعادة تفعيل' : 'أرشفة') + ' طالب') }),
@@ -2108,19 +2169,28 @@ function groupPairs(items) {
   });
   return Array.from(m.values()).sort((a, b) => (a.cname || '').localeCompare(b.cname || '', 'ar') || (a.sname || '').localeCompare(b.sname || '', 'ar'));
 }
+// نشر درجات كشف معتمد للطلاب وأولياء الأمور (بتتنسخ من الكشف لنسخة pg) أو سحبها
+async function publishSheetGrades(cid, sid, v) {
+  for (const st of students(cid, true)) {
+    const vals = rowNums(v, st.id), ref = db.doc('pg/' + cid + '__' + st.id + '__' + sid);
+    if (Object.keys(vals).length) await ref.set({ k: cid + '__' + st.id, cid, sid, st: st.id, v: vals, t: Date.now() });
+    else { try { await ref.delete(); } catch (e) { /* مفيش حاجة تتمسح */ } }
+  }
+}
+async function unpublishSheetGrades(cid, sid) {
+  const q = await db.collection('pg').where('sid', '==', sid).get();
+  for (const d of q.docs) { if (d.data().cid === cid) await d.ref.delete(); }
+}
 async function syncParentData() {
-  if (!(await confirmBox('مزامنة درجات أولياء الأمور من الكشوف الحالية؟\nاعملها مرة بعد التفعيل، ولما ترجّع حاجة من السلة.', 'مزامنة'))) return;
+  if (!(await confirmBox('مزامنة درجات الطلاب وأولياء الأمور؟\nهتتنشر درجات الكشوف المعتمدة بس، والكشوف غير المعتمدة بتتشال من عندهم.', 'مزامنة'))) return;
   toast('جارٍ المزامنة…');
   let n = 0;
   try {
     for (const a of allAssignments()) {
+      if (!isLocked(a.cid, a.sid)) { await unpublishSheetGrades(a.cid, a.sid); continue; }
       const v = await fetchGrades(a.cid, a.sid);
-      for (const st of students(a.cid, true)) {
-        const vals = rowNums(v, st.id);
-        if (!Object.keys(vals).length) continue;
-        await db.doc('pg/' + a.cid + '__' + st.id + '__' + a.sid).set({ k: a.cid + '__' + st.id, cid: a.cid, sid: a.sid, st: st.id, v: vals, t: Date.now() });
-        n++;
-      }
+      await publishSheetGrades(a.cid, a.sid, v);
+      n += students(a.cid, true).filter(st => Object.keys(rowNums(v, st.id)).length).length;
     }
     const ps = await db.collection('parents').get();
     for (const d of ps.docs) {
@@ -2316,43 +2386,145 @@ function changeMyPassword() {
       h('button', { class: 'btn', type: 'button', text: 'إلغاء', onclick: close }))));
   m.classList.add('show'); pw.focus();
 }
-function pageParentHome() {
-  const wrap = h('div'), P = S.parentDoc, sn = id => en(subjectName(id));
-  const hero = h('section', { class: 'hero' }, h('h1', { class: 'page', text: (P && P.type === 's') ? 'My grades' : "My child's grades" }),
-    h('p', { class: 'lead', text: S.cfg ? (en(S.cfg.term || '') + (S.cfg.year ? ' – Academic year ' + S.cfg.year : '')) : '' }));
-  hero.insertAdjacentHTML('beforeend', DOODLE); wrap.append(hero);
-  if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'Your account is not active or has been closed. Please contact the school.' })); return wrap; }
-  if (P.off) { wrap.append(h('div', { class: 'banner err', text: 'Your account is currently suspended. Please contact the school administration.' })); return wrap; }
-  if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'The system is not set up yet.' })); return wrap; }
-  const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [];
-  if (!kids.length) { wrap.append(h('div', { class: 'empty', text: 'No student is linked to your account. Please contact the school.' })); return wrap; }
-  wrap.append(planSection(P));
+const PMI = {
+  grades: '<path d="M5 20V11M12 20V4M19 20v-6"/>',
+  plan: '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  profile: '<circle cx="12" cy="8" r="4"/><path d="M4 20c1.4-3.8 4.4-6 8-6s6.6 2.2 8 6"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/>',
+  cap: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v6"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4.5a3 3 0 0 0 3 4M16 6h3.5a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>'
+};
+const pmIco = (k, sz) => '<svg viewBox="0 0 24 24" width="' + (sz || 22) + '" height="' + (sz || 22) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + PMI[k] + '</svg>';
+const PM_PAGES = [['grades', 'Grades'], ['plan', 'Weekly Plan'], ['profile', 'Profile'], ['settings', 'Settings']];
+function pmSide() {
+  let side = document.getElementById('pmSide');
+  if (!side) { side = document.createElement('aside'); side.id = 'pmSide'; side.className = 'pm-side'; side.setAttribute('dir', 'ltr'); document.body.insertBefore(side, document.querySelector('.strip-top')); }
+  S.ppage = S.ppage || 'grades';
+  side.innerHTML = '';
+  const nav = h('nav', { class: 'pm-nav', 'aria-label': 'Main' });
+  PM_PAGES.forEach(([k, label]) => { const b = h('button', { type: 'button', class: S.ppage === k ? 'on' : '', onclick: () => { S.ppage = k; window.scrollTo(0, 0); refresh(); } }); b.innerHTML = pmIco(k) + '<span>' + label + '</span>'; if (S.ppage === k) b.setAttribute('aria-current', 'page'); nav.append(b); });
+  const logo = h('div', { class: 'pm-logo' }, h('img', { src: $('#crest').src, alt: '', width: 96, height: 96 }));
+  const foot = h('div', { class: 'pm-foot' }); foot.innerHTML = pmIco('cap', 46) + '<span>Learn &bull; Achieve &bull; Excel</span>';
+  side.append(h('div', { class: 'pm-in' }, logo, nav, foot));
+}
+const PM_COLORS = ['#1d4ed8', '#10a36b', '#8b3ffc', '#f2711c', '#12b5b0', '#e0457b', '#c99a00'];
+function pmKidRows(kid) {
+  const Sx = scheme(), sn = id => en(subjectName(id));
+  return ((S.pg || {})[kid] || []).filter(d => S.subjects.some(s => s.id === d.sid))
+    .sort((a, b) => sn(a.sid).localeCompare(sn(b.sid), 'en'))
+    .map(d => { const vals = {}; Object.keys(d.v || {}).forEach(k => { if (typeof d.v[k] === 'number') vals[k] = d.v[k]; }); return { d, vals, c: compute(Sx, vals) }; });
+}
+function pmGrades(P, wrap) {
+  const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [], sn = id => en(subjectName(id));
+  const term = en(S.cfg.term || '') + (S.cfg.year ? ' – Academic year ' + S.cfg.year : '');
+  const first = (P.info || {})[kids[0]] || {};
+  const who = P.type === 's' ? (first.n || (S.me && S.me.name) || 'Student') : ((S.me && S.me.name) || 'Parent');
+  const ban = h('section', { class: 'pm-banner' }, h('div', {}, h('h1', { dir: 'auto', text: 'Welcome, ' + who }),
+    h('p', { text: P.type === 's' ? 'Track your progress and stay on top of your academic journey.' : "Follow your child's progress and stay on top of the weekly plan." })));
+  const capEl = h('div', { class: 'cap' }); capEl.innerHTML = pmIco('cap', 84); ban.append(capEl); wrap.append(ban);
   kids.forEach(kid => {
-    const info = (P.info || {})[kid] || {};
-    const rows = ((S.pg || {})[kid] || []).filter(d => S.subjects.some(s => s.id === d.sid))
-      .sort((a, b) => sn(a.sid).localeCompare(sn(b.sid), 'en'))
-      .map(d => { const vals = {}; Object.keys(d.v || {}).forEach(k => { if (typeof d.v[k] === 'number') vals[k] = d.v[k]; }); return { d, vals, c: compute(Sx, vals) }; });
-    const card = h('div', { class: 'card' }, h('h2', {}, h('span', { dir: 'auto', text: info.n || 'Student' }), info.c ? ' – ' : '', info.c ? h('span', { dir: 'auto', text: info.c }) : ''));
-    if (!rows.length) card.append(h('div', { class: 'empty', text: 'No grades have been recorded yet.' }));
+    const info = (P.info || {})[kid] || {}, rows = pmKidRows(kid);
+    const card = h('section', { class: 'pm-card' });
+    const tr = h('div', { class: 'pm-trophy' }); tr.innerHTML = pmIco('trophy', 54);
+    const showAll = !!S.pmAll;
+    const head = h('div', { class: 'pm-gh' }, tr,
+      h('div', { class: 'pm-gt' }, h('h2', { text: P.type === 's' ? 'My Grades' : (kids.length > 1 ? 'Grades' : "My Child's Grades") }),
+        h('p', { text: term }), (P.type !== 's' || kids.length > 1) && h('p', { class: 'pm-kid', dir: 'auto', text: (info.n || 'Student') + (info.c ? ' – ' + info.c : '') })),
+      rows.length ? h('button', { class: 'pm-btn', type: 'button', text: showAll ? 'Hide details' : 'View All Grades →', onclick: () => { S.pmAll = !S.pmAll; refresh(); } }) : null);
+    card.append(head);
+    if (!rows.length) card.append(h('div', { class: 'empty', text: 'No grades have been published yet. They appear here once the school administration approves the final sheets.' }));
     else {
-      card.append(h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-        h('thead', {}, h('tr', {}, h('th', { text: 'Subject' }),
-          Sx.months.map(m => h('th', { text: en(m.name) + ' (out of ' + monthMax(Sx) + ')' })), h('th', { text: 'Average (out of ' + avgMax(Sx) + ')' }),
-          Sx.exams.map(e => h('th', { text: en(e.name) + ' (out of ' + e.max + ')' })), h('th', { text: 'Final (out of ' + finalMax(Sx) + ')' }))),
-        h('tbody', {}, rows.map(r => h('tr', {}, h('td', {}, h('strong', { text: sn(r.d.sid) })),
-          r.c.months.map(m => h('td', { text: fmt(m.total) })), h('td', { text: fmt(r.c.avg) }),
-          Sx.exams.map(e => h('td', { text: fmt(r.vals['x_' + e.key] === undefined ? null : r.vals['x_' + e.key]) })),
-          h('td', {}, h('strong', { text: fmt(r.c.final) }))))))));
-      rows.forEach(r => card.append(h('details', { style: 'margin-top:10px' }, h('summary', { text: 'Details: ' + sn(r.d.sid) }),
-        h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' }, h('tbody', {}, fields.map(f => h('tr', {},
-          h('td', { text: en(f.label) }), h('td', { text: (r.vals[f.key] === undefined ? '—' : fmt(r.vals[f.key])) + ' / ' + f.max })))))))));
+      const gr = h('div', { class: 'pm-gr' });
+      rows.forEach((r, i) => { const g = h('div', { class: 'pm-g' }, h('div', { class: 'nm', text: sn(r.d.sid) }),
+        h('div', { class: 'sc' }, fmt(r.c.final), h('small', { text: ' /' + finalMax(Sx) })), h('i')); g.style.setProperty('--c', PM_COLORS[i % PM_COLORS.length]); gr.append(g); });
+      card.append(gr);
+      if (showAll) {
+        card.append(h('div', { class: 'table-wrap', style: 'margin-top:16px' }, h('table', { class: 'tbl' },
+          h('thead', {}, h('tr', {}, h('th', { text: 'Subject' }),
+            Sx.months.map(m => h('th', { text: en(m.name) + ' (out of ' + monthMax(Sx) + ')' })), h('th', { text: 'Average (out of ' + avgMax(Sx) + ')' }),
+            Sx.exams.map(e => h('th', { text: en(e.name) + ' (out of ' + e.max + ')' })), h('th', { text: 'Final (out of ' + finalMax(Sx) + ')' }))),
+          h('tbody', {}, rows.map(r => h('tr', {}, h('td', {}, h('strong', { text: sn(r.d.sid) })),
+            r.c.months.map(m => h('td', { text: fmt(m.total) })), h('td', { text: fmt(r.c.avg) }),
+            Sx.exams.map(e => h('td', { text: fmt(r.vals['x_' + e.key] === undefined ? null : r.vals['x_' + e.key]) })),
+            h('td', {}, h('strong', { text: fmt(r.c.final) }))))))));
+        rows.forEach(r => card.append(h('details', { style: 'margin-top:10px' }, h('summary', { text: 'Details: ' + sn(r.d.sid) }),
+          h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' }, h('tbody', {}, fields.map(f => h('tr', {},
+            h('td', { text: en(f.label) }), h('td', { text: (r.vals[f.key] === undefined ? '—' : fmt(r.vals[f.key])) + ' / ' + f.max })))))))));
+      }
     }
     wrap.append(card);
   });
-  wrap.append(h('p', { class: 'note', text: 'These are the grades entered by teachers so far. They update live and may change until the school approves the final sheets.' }));
+  wrap.append(h('p', { class: 'note', text: 'Grades are published here after the school administration approves the final sheets.' }));
+}
+function pmPlan(P, wrap) {
+  S.planWk = S.planWk || weekStart(new Date());
+  const kids = P.kids || [], cids = [...new Set(kids.map(k => k.split('__')[0]))];
+  const go_ = n => { S.planWk = n === 0 ? weekStart(new Date()) : shiftWeek(S.planWk, n); watchPlans(); refresh(); };
+  const ic = h('div', { class: 'pm-pic' }); ic.innerHTML = pmIco('plan', 26);
+  const card = h('section', { class: 'pm-card' }, h('div', { class: 'pm-ph' }, ic,
+    h('div', { class: 'pm-gt' }, h('h2', { text: 'Weekly Plan' }), h('p', { text: weekLabel(S.planWk, 'en') })),
+    h('div', { class: 'pm-pn' },
+      h('button', { class: 'pm-btn', type: 'button', text: '← Previous', onclick: () => go_(-1) }),
+      S.planWk !== weekStart(new Date()) && h('button', { class: 'pm-btn', type: 'button', text: 'This week', onclick: () => go_(0) }),
+      h('button', { class: 'pm-btn', type: 'button', text: 'Next →', onclick: () => go_(1) }))));
+  const [y, m, dd] = S.planWk.split('-').map(Number), todayIso = isoDay(new Date());
+  cids.forEach(cid => {
+    const doc = (S.plans || {})[cid], subs = Object.entries((doc || {}).s || {}).filter(([, p]) => planHasContent(p))
+      .sort((a, b) => en(subjectName(a[0])).localeCompare(en(subjectName(b[0])), 'en'));
+    if (cids.length > 1) { const inf = (P.info || {})[kids.find(k => k.split('__')[0] === cid)] || {}; card.append(h('h3', { class: 'pm-cls', dir: 'auto', text: inf.c || 'Class' })); }
+    PDAYS.forEach(([k, , e], i) => {
+      const d = new Date(y, m - 1, dd + i), today = isoDay(d) === todayIso;
+      const items = subs.map(([sid, p]) => [sid, ((p.d || {})[k] || '').trim()]).filter(x => x[1]);
+      const chip = h('div', { class: 'pm-chip' + (today ? ' today' : '') }, h('span', { text: e.slice(0, 3) }), h('b', { text: String(d.getDate()).padStart(2, '0') }));
+      const dc = h('div', { class: 'pm-dc' + (items.length ? '' : ' none') });
+      if (items.length) items.forEach(([sid, t]) => dc.append(h('div', { class: 'it' }, h('b', { text: en(subjectName(sid)) }), h('span', { dir: 'auto', text: t }))));
+      else dc.append(h('div', { class: 'it' }, h('span', { text: subs.length ? 'No lessons posted for this day.' : 'No plan has been posted for this week yet.' })));
+      card.append(h('div', { class: 'pm-day' }, chip, dc));
+    });
+    const extra = subs.filter(([, p]) => (p.hw || '').trim() || (p.note || '').trim());
+    if (extra.length) {
+      const box = h('div', { class: 'pm-extra' }, h('h3', { text: 'Homework & notes' }));
+      extra.forEach(([sid, p]) => {
+        const it = h('div', { class: 'pm-x' }, h('b', { text: en(subjectName(sid)) }));
+        if ((p.hw || '').trim()) it.append(h('p', {}, h('em', { text: 'Homework: ' }), h('span', { dir: 'auto', text: p.hw })));
+        if ((p.note || '').trim()) it.append(h('p', {}, h('em', { text: 'Note: ' }), h('span', { dir: 'auto', text: p.note })));
+        box.append(it);
+      });
+      card.append(box);
+    }
+  });
+  wrap.append(card);
+}
+function pmProfile(P, wrap) {
+  const kids = P.kids || [], login = String((FB && FB.email) || '').split('@')[0];
+  const first = (P.info || {})[kids[0]] || {}, nm = P.type === 's' ? (first.n || (S.me && S.me.name) || 'Student') : ((S.me && S.me.name) || 'Parent');
+  const card = h('section', { class: 'pm-card' }, h('div', { class: 'pm-prof' }, h('div', { class: 'pm-av', 'aria-hidden': 'true', text: (nm.trim().charAt(0) || '?').toUpperCase() }),
+    h('div', {}, h('h2', { dir: 'auto', text: nm }), h('p', { class: 'pm-sub', text: P.type === 's' ? 'Student account' : 'Parent account' }))));
+  const dl = h('dl', { class: 'pm-dl' });
+  const row = (k, v) => { if (v) dl.append(h('dt', { text: k }), h('dd', { dir: 'auto', text: v })); };
+  row('Login code', login);
+  kids.forEach(k => { const i = (P.info || {})[k] || {}; row(P.type === 's' ? 'Class' : (i.n || 'Student'), P.type === 's' ? i.c : i.c); });
+  row('School', schoolNameEn());
+  row('Email', 'info@Wiseness.com'); row('Phone', '+2 01276530009');
+  card.append(dl); wrap.append(card);
+}
+function pmSettings(P, wrap) {
+  const dark = (document.documentElement.getAttribute('data-theme') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+  const rowS = (t, d, btn) => h('div', { class: 'pm-set' }, h('div', {}, h('b', { text: t }), h('p', { text: d })), btn);
+  wrap.append(h('section', { class: 'pm-card' }, h('h2', { text: 'Settings' }),
+    rowS('Password', 'Change the password you use to sign in.', h('button', { class: 'pm-btn', type: 'button', text: 'Change password', onclick: changeMyPassword })),
+    rowS('Appearance', 'Switch between light and dark mode.', h('button', { class: 'pm-btn', type: 'button', text: dark ? 'Use light mode' : 'Use dark mode', onclick: () => { document.getElementById('themeBtn').click(); refresh(); } })),
+    rowS('Sign out', 'Log out of this device.', h('button', { class: 'pm-btn', type: 'button', text: 'Log out', onclick: fbLogout }))));
+}
+function pageParentHome() {
+  const wrap = h('div', { class: 'pm-page' }), P = S.parentDoc;
+  if (S.revoked || !P) { wrap.append(h('div', { class: 'banner err', text: 'Your account is not active or has been closed. Please contact the school.' })); return wrap; }
+  if (P.off) { wrap.append(h('div', { class: 'banner err', text: 'Your account is currently suspended. Please contact the school administration.' })); return wrap; }
+  if (!S.cfg) { wrap.append(h('div', { class: 'empty', text: 'The system is not set up yet.' })); return wrap; }
+  if (!(P.kids || []).length) { wrap.append(h('div', { class: 'empty', text: 'No student is linked to your account. Please contact the school.' })); return wrap; }
+  ({ grades: pmGrades, plan: pmPlan, profile: pmProfile, settings: pmSettings }[S.ppage || 'grades'] || pmGrades)(P, wrap);
   return wrap;
 }
-
   
 /* =====================================================================
    الخطة الأسبوعية: المعلم بيكتبها للفصل، وبتظهر لكل طالب وولي أمر في الفصل
