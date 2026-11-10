@@ -108,6 +108,7 @@
   .lp-nav .cta { margin-inline-end: 14px; background: var(--sky); color: #fff; border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: .9rem; text-decoration: none; cursor: pointer; }
   .lp-nav .cta:hover { filter: brightness(.95); }
   .pub-ov { position: fixed; inset: 0; z-index: 200; overflow-y: auto; overflow-x: hidden; background: var(--bg, #fff); overscroll-behavior: contain; } body.pub-open { overflow: hidden; }
+  .lp-nav .cta.me { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; font-size: .86rem; max-width: 62vw; } .lp-nav .cta.me img { border-radius: 50%; object-fit: cover; flex: none; } .lp-nav .cta.me svg { flex: none; }
   .lp-nav .cta .hi { max-width: 220px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   .pm-home { display: flex; align-items: center; gap: 12px; }
   .lp-inner.one { grid-template-columns: 1fr; min-height: min(620px, calc(100vh - 150px)); }
@@ -173,7 +174,7 @@
     .lp-signin-in { padding: 40px 18px; } .lp-sec { padding: 44px 18px 4px; } .lp-facts-in { padding: 18px; gap: 14px; } .lp-facts b { font-size: 1.25rem; }
     .ph-hero { min-height: 260px; } .ph-hero h1 { font-size: 1.9rem; } .tc { max-width: none; flex-basis: calc(50% - 11px); } .tc .ph { font-size: 1.8rem; }
   }
-  @media (max-width: 560px) { .lp-facts-in { grid-template-columns: 1fr; gap: 10px; } }
+  @media (max-width: 560px) { .lp-nav .cta.me { padding: 5px 10px 5px 6px; font-size: .8rem; } .lp-nav .cta .hi { max-width: 24vw; } .lp-nav .cta.me { min-width: 0; flex: 0 1 auto; margin-inline-end: 8px; } .lp-facts-in { grid-template-columns: 1fr; gap: 10px; } }
   @media (max-width: 420px) { .tc { flex-basis: 100%; } }
 
   /* ===== واجهة الطالب وولي الأمر ===== */
@@ -3204,6 +3205,7 @@ const SLIDES = [
 // ===== محتوى الموقع التعريفي: عدّل هنا بس =====
 const SITE = {
   since: 2005,
+  userIcon: '',   // رابط أيقونة المستخدم (صورة) اللي بتظهر قبل الاسم في الشريط — سيبه فاضي لأيقونة افتراضية
   stats: [ // أرقام الشريط تحت صورة الافتتاح — عدّلها بالأرقام الحقيقية
     { n: '3000+', l: 'Graduates since ' + 2005 },
     { n: '1200+', l: 'Active Students' },
@@ -3299,7 +3301,7 @@ function fbLogin(opts) {
     const home = mk('div', 'pg');
     const heroCopy = mk('div', 'lp-copy', '<div class="lp-eyebrow">Since ' + A + '</div><h1 class="lp-title">Wiseness Language School</h1><div class="lp-for">For preparatory &amp; secondary</div>' +
       '<p class="lp-lead">A school where children grow in knowledge, character and confidence, and leave ready for whatever comes next.</p>' +
-      '<div class="lp-btns">' + (pv ? '<a class="b1" data-go="back">&larr; Back to my account</a>' : '<a class="b1" data-go="login">Sign in</a>') + '<a class="b2" data-go="about">About the school</a></div>');
+      '<div class="lp-btns">' + (pv ? '<a class="b1" data-go="back">' + (S.parentMode ? '&larr; Back to my account' : 'العودة لحسابي &rarr;') + '</a>' : '<a class="b1" data-go="login">Sign in</a>') + '<a class="b2" data-go="about">About the school</a></div>');
     home.append(h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }), h('div', { class: 'lp-inner one' }, heroCopy), h('div', { class: 'lp-dots' }, dots)));
     home.append(mk('div', 'lp-facts', '<div class="lp-facts-in">' + SITE.stats.map(x => '<div><b>' + x.n + '</b><span>' + x.l + '</span></div>').join('') + '</div>'));
     const about = mk('section', 'lp-sec', '<h2>About the school</h2><p class="sub">Since ' + A + ', Wiseness Language School has prepared its students to step into the world with solid knowledge, modern skills and strong values, while staying close to their culture and roots. We nurture a love of learning, encourage curiosity, and give every child a firm foundation to build on.</p>' +
@@ -3362,7 +3364,7 @@ function fbLogin(opts) {
     // ---------- nav + routing ----------
     const pages = { home, teachers, seniors };
     const nav = mk('nav', 'lp-nav'); nav.setAttribute('aria-label', 'Main');
-    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span>' + (pv ? '<a class="cta" data-go="back" title="Back to my account"><span class="hi">' + esc(opts.name || 'My account') + '</span> &middot; My account</a>' : '<a class="cta" data-go="login">Sign in</a>') + '</div>';
+    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span>' + (pv ? '<a class="cta me" data-go="back" title="' + (S.parentMode ? 'Back to my account' : 'العودة لحسابي') + '">' + (SITE.userIcon ? '<img src="https://res.cloudinary.com/df5qqg0v0/image/upload/v1794276140/IMG_1275_ccdddg.png"' + esc(SITE.userIcon) + '" alt="" width="22" height="22">' : '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.500-6 8-6s6.500 2 8 6"/></svg>') + '<span class="hi" dir="auto">' + esc(opts.name || (S.parentMode ? 'Student' : 'حسابي')) + '</span></a>' : '<a class="cta" data-go="login">Sign in</a>') + '</div>';
     const route = () => {
       const parts = (location.hash || '').replace(/^#\/?/, '').split('/'); const r = parts[0]; const k = pages[r] ? r : 'home'; if (k === 'seniors') showClass(parts[1] || null);
       Object.keys(pages).forEach(n => { pages[n].hidden = n !== k; });
