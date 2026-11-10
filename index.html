@@ -108,7 +108,15 @@
   .lp-nav .cta { margin-inline-end: 14px; background: var(--sky); color: #fff; border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: .9rem; text-decoration: none; cursor: pointer; }
   .lp-nav .cta:hover { filter: brightness(.95); }
   .pub-ov { position: fixed; inset: 0; z-index: 200; overflow-y: auto; overflow-x: hidden; background: var(--bg, #fff); overscroll-behavior: contain; } body.pub-open { overflow: hidden; }
-  .lp-nav .cta.me { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; font-size: .86rem; max-width: 62vw; } .lp-nav .cta.me img { border-radius: 50%; object-fit: cover; flex: none; } .lp-nav .cta.me svg { flex: none; }
+  .lp-nav .cta.me { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; font-size: .86rem; max-width: 62vw; }
+  .lp-nav .cta.me img { border-radius: 50%; object-fit: cover; flex: none; } 
+  .lp-nav .cta.me svg { flex: none; }
+  .lp-nav .cta.me {
+  background: color-mix(in srgb, var(--royal) 40%, transparent); /* شفاف خفيف */
+  color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--royal) 22%, transparent);
+}
+.lp-nav .cta.me:hover { background: color-mix(in srgb, var(--royal) 18%, transparent); filter: none; }
   .lp-nav .cta .hi { max-width: 220px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   .pm-home { display: flex; align-items: center; gap: 12px; }
   .lp-inner.one { grid-template-columns: 1fr; min-height: min(620px, calc(100vh - 150px)); }
