@@ -107,6 +107,9 @@
   .lp-dots { left: max(24px, calc((100% - 1132px) / 2)); }
   .lp-nav .cta { margin-inline-end: 14px; background: var(--sky); color: #fff; border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: .9rem; text-decoration: none; cursor: pointer; }
   .lp-nav .cta:hover { filter: brightness(.95); }
+  .pub-ov { position: fixed; inset: 0; z-index: 200; overflow-y: auto; overflow-x: hidden; background: var(--bg, #fff); overscroll-behavior: contain; } body.pub-open { overflow: hidden; }
+  .lp-nav .cta .hi { max-width: 220px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+  .pm-home { display: flex; align-items: center; gap: 12px; }
   .lp-inner.one { grid-template-columns: 1fr; min-height: min(620px, calc(100vh - 150px)); }
   .lp-inner.one .lp-copy { max-width: 40rem; }
   .lp-btns { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
@@ -1016,6 +1019,7 @@ function header() {
     chip.append(h('b', { text: nm }), h('span', { text: rl }));
     if (S.fb) chip.append(h('div', { class: 'acts', style: 'justify-content:flex-end;margin-top:4px' },
       S.parentMode ? null : h('button', { class: 'btn small', type: 'button', text: 'تغيير كلمة المرور', onclick: (S.parentMode || isUserAcct()) ? changeMyPassword : async () => { try { await FB.authM.sendPasswordResetEmail(FB.auth, FB.email); toast('اتبعت رابط تغيير كلمة المرور على إيميلك.'); } catch (e) { toast(authErr(e), true); } } }),
+      S.parentMode ? null : h('button', { class: 'btn small', type: 'button', text: 'الموقع', onclick: openPublicSite }),
       h('button', { class: 'btn small', type: 'button', text: T('خروج', 'Log out'), onclick: fbLogout })));
   }
   const tabs = $('#tabs'); tabs.innerHTML = '';
@@ -2426,6 +2430,8 @@ function pmSide() {
   const nm = (S.me && S.me.name) || '';
   const brand = h('div', { class: 'pm-brand' }, h('img', { src: $('#crest').src, alt: '', width: 44, height: 44 }), h('div', {}, h('b', { text: 'Wiseness' }), h('span', { text: 'Language School' })));
   const user = h('div', { class: 'pm-user' }, h('b', { dir: 'auto', text: nm || 'Student' }), h('span', { text: (S.parentDoc && S.parentDoc.type === 's') ? 'Student' : 'Parent' }));
+  const homeBtn = h('button', { type: 'button', class: 'pm-homebtn', onclick: () => { close(); openPublicSite(); } }); homeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5h4v5"/></svg><span>Home</span>';
+  nav.insertBefore(homeBtn, nav.firstChild);
   const out = h('button', { class: 'pm-out', type: 'button', onclick: fbLogout }); out.innerHTML = 'Log out';
   const foot = h('div', { class: 'pm-foot' }); foot.innerHTML = pmIco('cap', 18) + '<span>Learn &bull; Achieve &bull; Excel</span>';
   side.append(h('div', { class: 'pm-in' }, brand, user, nav, out, foot));
@@ -3218,20 +3224,27 @@ const SITE = {
     { year: 2023, cover: IMG.s10, photos: [IMG.s10p1, IMG.s10p2, IMG.s10p3, IMG.s10p4, IMG.s10p5, IMG.s10p6, IMG.s10p7,IMG.s10p8, IMG.s10p9, IMG.s10p10, IMG.s10p11, IMG.s10p12], videos: [] }
   ]
 };
-function fbLogin() {
+function fbLogin(opts) {
+  const pv = !!(opts && opts.preview);                          // وضع المعاينة: مستخدم مسجّل دخول بيتفرج على الموقع التعريفي
   return new Promise(resolve => {
     const { authM, auth } = FB;
-    const v = $('#view'); v.innerHTML = ''; $('#tabs').hidden = true; $('#meChip').innerHTML = '';
-    document.body.classList.add('landing'); document.documentElement.setAttribute('dir', 'ltr'); document.documentElement.setAttribute('lang', 'en');
-    $('#schoolName').textContent = 'Wiseness Language School'; $('#termLine').textContent = 'For preparatory & secondary';
-    const spEl = document.querySelector('.strip-top .sp'); if (spEl) spEl.textContent = '';
+    let v;
+    if (pv) {
+      v = document.createElement('div'); v.id = 'pubOv'; v.className = 'pub-ov'; v.setAttribute('dir', 'ltr'); v.setAttribute('lang', 'en'); document.body.append(v); document.body.classList.add('pub-open');
+    } else {
+      v = $('#view'); v.innerHTML = ''; $('#tabs').hidden = true; $('#meChip').innerHTML = '';
+      document.body.classList.add('landing'); document.documentElement.setAttribute('dir', 'ltr'); document.documentElement.setAttribute('lang', 'en');
+      $('#schoolName').textContent = 'Wiseness Language School'; $('#termLine').textContent = 'For preparatory & secondary';
+      const spEl = document.querySelector('.strip-top .sp'); if (spEl) spEl.textContent = '';
+    }
     const email = h('input', { type: 'text', inputmode: 'email', autocomplete: 'username', id: 'loginEmail', dir: 'ltr', autocapitalize: 'none', placeholder: 'Email or school code' });
     const pw = h('input', { type: 'password', autocomplete: 'current-password', id: 'loginPw', dir: 'ltr' });
     const nm = h('input', { type: 'text', id: 'firstName', placeholder: 'Your name' });
     const msg = h('div', { class: 'banner err', hidden: true, role: 'alert' });
     const fail = t => { msg.textContent = t; msg.hidden = false; };
     let timer = null, cleanup = () => {};
-    const finish = () => { if (timer) clearInterval(timer); cleanup(); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
+    const onEsc = e => { if (pv && e.key === 'Escape') finish(); };
+    const finish = () => { if (timer) clearInterval(timer); cleanup(); if (pv) { document.removeEventListener('keydown', onEsc); v.remove(); document.body.classList.remove('pub-open'); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} resolve(); return; } try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} document.body.classList.remove('landing'); document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); resolve(); };
     const login = async e => {
       if (e) e.preventDefault(); msg.hidden = true;
       const id = loginId(email.value);
@@ -3280,12 +3293,13 @@ function fbLogin() {
     const IC = { check: ico('<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/>'), chart: ico('<path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/>'), shield: ico('<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.500 7-10V6l-7-3Z"/><path d="m9 12 2.200 2.200L15 10.500"/>'), device: ico('<rect x="3" y="5" width="14" height="10" rx="1.500"/><path d="M8 19h4m-2-4v4"/><rect x="18" y="9" width="3.500" height="9" rx=".8"/>') };
     const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
     const foot = () => mk('div', 'lp-more', '<div class="lp-foot"><span>&copy; ' + new Date().getFullYear() + ' Wiseness Language School</span><span>info@Wiseness.com &nbsp;·&nbsp; +2 01276530009</span></div>');
+    const toTop = () => { if (pv) v.scrollTo(0, 0); else window.scrollTo(0, 0); };
     const A = SITE.since;
     // ---------- Home ----------
     const home = mk('div', 'pg');
     const heroCopy = mk('div', 'lp-copy', '<div class="lp-eyebrow">Since ' + A + '</div><h1 class="lp-title">Wiseness Language School</h1><div class="lp-for">For preparatory &amp; secondary</div>' +
       '<p class="lp-lead">A school where children grow in knowledge, character and confidence, and leave ready for whatever comes next.</p>' +
-      '<div class="lp-btns"><a class="b1" data-go="login">Sign in</a><a class="b2" data-go="about">About the school</a></div>');
+      '<div class="lp-btns">' + (pv ? '<a class="b1" data-go="back">&larr; Back to my account</a>' : '<a class="b1" data-go="login">Sign in</a>') + '<a class="b2" data-go="about">About the school</a></div>');
     home.append(h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }), h('div', { class: 'lp-inner one' }, heroCopy), h('div', { class: 'lp-dots' }, dots)));
     home.append(mk('div', 'lp-facts', '<div class="lp-facts-in">' + SITE.stats.map(x => '<div><b>' + x.n + '</b><span>' + x.l + '</span></div>').join('') + '</div>'));
     const about = mk('section', 'lp-sec', '<h2>About the school</h2><p class="sub">Since ' + A + ', Wiseness Language School has prepared its students to step into the world with solid knowledge, modern skills and strong values, while staying close to their culture and roots. We nurture a love of learning, encourage curiosity, and give every child a firm foundation to build on.</p>' +
@@ -3310,7 +3324,7 @@ function fbLogin() {
         h('p', { class: 'note', text: 'Enter your email and password above, type your name below, then press Create. The first account created becomes the system owner. Other users are added by the owner.' }),
         h('label', { class: 'f' }, 'Your name', nm),
         h('div', { style: 'margin-top:10px' }, h('button', { class: 'btn', type: 'button', text: 'Create admin account', onclick: create })))))));
-    home.append(signin, foot());
+    if (pv) home.append(foot()); else home.append(signin, foot());
     // ---------- Teachers ----------
     const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const teachers = mk('div', 'pg');
@@ -3348,7 +3362,7 @@ function fbLogin() {
     // ---------- nav + routing ----------
     const pages = { home, teachers, seniors };
     const nav = mk('nav', 'lp-nav'); nav.setAttribute('aria-label', 'Main');
-    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span><a class="cta" data-go="login">Sign in</a></div>';
+    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span>' + (pv ? '<a class="cta" data-go="back" title="Back to my account"><span class="hi">' + esc(opts.name || 'My account') + '</span> &middot; My account</a>' : '<a class="cta" data-go="login">Sign in</a>') + '</div>';
     const route = () => {
       const parts = (location.hash || '').replace(/^#\/?/, '').split('/'); const r = parts[0]; const k = pages[r] ? r : 'home'; if (k === 'seniors') showClass(parts[1] || null);
       Object.keys(pages).forEach(n => { pages[n].hidden = n !== k; });
@@ -3356,8 +3370,8 @@ function fbLogin() {
       return k;
     };
     const goto = id => { if (route() !== 'home') { location.hash = '#/'; route(); } setTimeout(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); };
-    const onClick = e => { const a = e.target.closest('a[data-r],a[data-go]'); if (!a) return; e.preventDefault(); if (a.dataset.r) { location.hash = a.dataset.r === 'home' ? '#/' : '#/' + a.dataset.r; window.scrollTo(0, 0); } else goto(a.dataset.go === 'login' ? 'lp-login' : 'lp-about'); };
-    const onHash = () => { if (route() !== 'home') window.scrollTo(0, 0); };
+    const onClick = e => { const a = e.target.closest('a[data-r],a[data-go]'); if (!a) return; e.preventDefault(); if (a.dataset.r) { location.hash = a.dataset.r === 'home' ? '#/' : '#/' + a.dataset.r; toTop(); } else if (a.dataset.go === 'back') finish(); else goto(a.dataset.go === 'login' ? 'lp-login' : 'lp-about'); };
+    const onHash = () => { if (route() !== 'home') toTop(); };
     window.addEventListener('hashchange', onHash);
     const lp = h('div', { class: 'lp', dir: 'ltr', lang: 'en' }, nav, home, teachers, seniors);
     lp.addEventListener('click', onClick);
@@ -3365,7 +3379,7 @@ function fbLogin() {
     route();
     v.append(lp);
     endSplash();
-    if (window.innerWidth > 820) email.focus();
+    if (pv) { document.addEventListener('keydown', onEsc); v.scrollTop = 0; } else if (window.innerWidth > 820) email.focus();
   });
 }
 async function setupFirebase() {
@@ -3521,6 +3535,8 @@ function staffImportCard() {
     status, out);
 }
   
+let pubOpen = false;
+async function openPublicSite() { if (pubOpen) return; pubOpen = true; try { await fbLogin({ preview: true, name: (S.me && S.me.name) || '' }); } finally { pubOpen = false; } }
 async function fbLogout() { try { await FB.authM.signOut(FB.auth); } catch (e) { /* تجاهل */ } location.reload(); }
 function fbAddUserCard() {
   const name = h('input', { type: 'text', id: 'fbName' });
