@@ -108,15 +108,7 @@
   .lp-nav .cta { margin-inline-end: 14px; background: var(--sky); color: #fff; border-radius: 999px; padding: 9px 20px; font-weight: 700; font-size: .9rem; text-decoration: none; cursor: pointer; }
   .lp-nav .cta:hover { filter: brightness(.95); }
   .pub-ov { position: fixed; inset: 0; z-index: 200; overflow-y: auto; overflow-x: hidden; background: var(--bg, #fff); overscroll-behavior: contain; } body.pub-open { overflow: hidden; }
-  .lp-nav .cta.me { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; font-size: .86rem; max-width: 62vw; }
-  .lp-nav .cta.me img { border-radius: 50%; object-fit: cover; flex: none; } 
-  .lp-nav .cta.me svg { flex: none; }
-  .lp-nav .cta.me {
-  background: color-mix(in srgb, var(--royal) 40%, transparent); /* شفاف خفيف */
-  color: var(--ink);
-  border: 1px solid color-mix(in srgb, var(--royal) 22%, transparent);
-}
-.lp-nav .cta.me:hover { background: color-mix(in srgb, var(--royal) 18%, transparent); filter: none; }
+  .lp-nav .cta.me { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; font-size: .86rem; max-width: 62vw; } .lp-nav .cta.me img { border-radius: 50%; object-fit: cover; flex: none; } .lp-nav .cta.me svg { flex: none; }
   .lp-nav .cta .hi { max-width: 220px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
   .pm-home { display: flex; align-items: center; gap: 12px; }
   .lp-inner.one { grid-template-columns: 1fr; min-height: min(620px, calc(100vh - 150px)); }
@@ -354,12 +346,28 @@
   .plan-nav strong { flex: 1 1 auto; text-align: center; color: var(--ink); }
   .plan-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 8px; }
   .plan-form textarea { min-height: 84px; }
+  .plan-hwd { display: grid; gap: 14px; margin-bottom: 8px; } .plan-day2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--line); } @media (max-width: 560px) { .plan-day2 { grid-template-columns: 1fr; } }
   .plan-card { margin-top: 12px; }
   .plan-card h3 { margin: 0 0 4px; color: var(--ink); }
   .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 8px; }
   .plan-day, .plan-hw, .plan-note { background: var(--head); border-radius: 12px; padding: 10px 12px; }
   .plan-hw, .plan-note { margin-top: 10px; }
   .plan-day p, .plan-hw p, .plan-note p { margin: 4px 0 0; white-space: pre-wrap; line-height: 1.7; }
+  .sp-subj { border: 1px solid var(--line); border-radius: 16px; background: var(--card); margin-top: 16px; overflow: hidden; }
+  .sp-subj > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--head); }
+  .sp-subj > header h3 { margin: 0; font-size: 1.08rem; color: var(--ink); } .sp-subj > header small { color: var(--muted); }
+  .sp-tbl { display: grid; grid-template-columns: 132px minmax(0, 1.5fr) minmax(0, 1fr); }
+  .sp-tbl > div { padding: 9px 14px; border-bottom: 1px solid var(--line); border-inline-start: 1px solid var(--line); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+  .sp-tbl > div:nth-child(3n+1) { border-inline-start: 0; }
+  .sp-tbl > .th { background: var(--head); font-size: .74rem; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 8px 14px; }
+  .sp-tbl > .dl { font-weight: 700; color: var(--ink); white-space: normal; } .sp-tbl > .dl.today { color: #0a6fe8; } .sp-tbl > .dl.today::after { content: " •"; }
+  .sp-tbl > .none { color: var(--line-strong); }
+  .sp-tbl > div:nth-last-child(-n+3) { border-bottom: 0; }
+  .sp-hw0 { padding: 10px 20px; border-top: 1px solid var(--line); white-space: pre-wrap; line-height: 1.6; } .sp-hw0 b { color: var(--muted); font-size: .78rem; letter-spacing: .09em; text-transform: uppercase; margin-inline-end: 8px; }
+  .sp-quiz { display: flex; align-items: baseline; gap: 12px; padding: 10px 20px; border-top: 1px solid var(--line); background: color-mix(in srgb, #0a6fe8 7%, transparent); }
+  .sp-quiz b { flex: none; font-size: .78rem; letter-spacing: .09em; text-transform: uppercase; color: #0a6fe8; } .sp-quiz span { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+  .sp-note { padding: 10px 20px 14px; color: var(--muted); border-top: 1px dashed var(--line); white-space: pre-wrap; }
+  @media (max-width: 640px) { .sp-subj { margin-top: 12px; border-radius: 14px; } .sp-subj > header { padding: 11px 12px; } .sp-subj > header h3 { font-size: .98rem; } .sp-subj > header small { font-size: .72rem; } .sp-tbl { grid-template-columns: 78px minmax(0, 1.3fr) minmax(0, 1fr); font-size: .78rem; } .sp-tbl > div { padding: 7px 8px; line-height: 1.45; } .sp-tbl > .th { font-size: .62rem; letter-spacing: .04em; padding: 7px 8px; } .sp-tbl > .dl { font-size: .7rem; padding-inline: 6px; word-break: keep-all; } .sp-quiz { padding: 8px 12px; gap: 8px; font-size: .8rem; } .sp-quiz b { font-size: .66rem; } .sp-note, .sp-hw0 { padding: 8px 12px 10px; font-size: .78rem; } }
   .plan-sec { margin-bottom: 22px; }
   .plan-over { margin-top: 22px; }
   .site-foot { text-align: center; padding: 22px 16px 28px; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
@@ -678,6 +686,20 @@ const EN_WORDS = [['الفصل الدراسي الأول', 'First term'], ['ال
   ['يناير', 'January'], ['فبراير', 'February'], ['مارس', 'March'], ['أبريل', 'April'], ['ابريل', 'April'], ['مايو', 'May'], ['يونيو', 'June'], ['يوليو', 'July'],
   ['أغسطس', 'August'], ['اغسطس', 'August'], ['سبتمبر', 'September'], ['أكتوبر', 'October'], ['اكتوبر', 'October'], ['نوفمبر', 'November'], ['ديسمبر', 'December']]
   .sort((a, b) => b[0].length - a[0].length);
+// اسم بالإنجليزي لواجهة الطالب وولي الأمر: لو الاسم مكتوب إنجليزي بيفضل زي ما هو، ولو عربي بيتحوّل (قاموس أسماء شائعة + حروف)
+const EN_NAMES = { 'محمد': 'Mohamed', 'مُحمد': 'Mohamed', 'احمد': 'Ahmed', 'أحمد': 'Ahmed', 'محمود': 'Mahmoud', 'مصطفى': 'Mostafa', 'مصطفي': 'Mostafa', 'علي': 'Ali', 'عمر': 'Omar', 'عمرو': 'Amr', 'ابراهيم': 'Ibrahim', 'إبراهيم': 'Ibrahim', 'اسماعيل': 'Ismail', 'إسماعيل': 'Ismail', 'يوسف': 'Youssef', 'يوسُف': 'Youssef', 'خالد': 'Khaled', 'حسن': 'Hassan', 'حسين': 'Hussein', 'هشام': 'Hesham', 'حسام': 'Hossam', 'نبيل': 'Nabil', 'كريم': 'Karim', 'طارق': 'Tarek', 'ياسر': 'Yasser', 'ياسين': 'Yassin', 'سيف': 'Seif', 'زياد': 'Ziad', 'ادم': 'Adam', 'آدم': 'Adam', 'مازن': 'Mazen', 'مالك': 'Malek', 'عبدالله': 'Abdullah', 'عبد الله': 'Abdullah', 'عبدالرحمن': 'Abdelrahman', 'عبد الرحمن': 'Abdelrahman', 'عبدالعزيز': 'Abdelaziz', 'عبد العزيز': 'Abdelaziz', 'عبدالحميد': 'Abdelhamid', 'عبد الحميد': 'Abdelhamid', 'السيد': 'El-Sayed', 'سعيد': 'Said', 'سعد': 'Saad', 'سامح': 'Sameh', 'سامي': 'Sami', 'سمير': 'Samir', 'شريف': 'Sherif', 'صلاح': 'Salah', 'عادل': 'Adel', 'عماد': 'Emad', 'فادي': 'Fady', 'فارس': 'Fares', 'فتحي': 'Fathy', 'ماجد': 'Maged', 'مجدي': 'Magdy', 'وليد': 'Walid', 'ايمن': 'Ayman', 'أيمن': 'Ayman', 'اسامة': 'Osama', 'أسامة': 'Osama', 'رضا': 'Reda', 'رمضان': 'Ramadan', 'جمال': 'Gamal', 'جلال': 'Galal', 'بلال': 'Belal', 'باسم': 'Basem', 'ايهاب': 'Ehab', 'إيهاب': 'Ehab', 'اشرف': 'Ashraf', 'أشرف': 'Ashraf', 'سارة': 'Sara', 'ساره': 'Sara', 'فاطمة': 'Fatma', 'فاطمه': 'Fatma', 'مريم': 'Mariam', 'نور': 'Nour', 'نورا': 'Nora', 'هدى': 'Hoda', 'هدي': 'Hoda', 'منى': 'Mona', 'مني': 'Mona', 'منة': 'Menna', 'منه': 'Menna', 'ندى': 'Nada', 'ندي': 'Nada', 'هالة': 'Hala', 'هاله': 'Hala', 'ليلى': 'Laila', 'ليلي': 'Laila', 'اميرة': 'Amira', 'أميرة': 'Amira', 'امير': 'Amir', 'أمير': 'Amir', 'رنا': 'Rana', 'رنيم': 'Raneem', 'جنى': 'Jana', 'جني': 'Jana', 'سلمى': 'Salma', 'سلمي': 'Salma', 'حبيبة': 'Habiba', 'حبيبه': 'Habiba', 'ملك': 'Malak', 'يارا': 'Yara', 'دينا': 'Dina', 'داليا': 'Dalia', 'نادية': 'Nadia', 'ناديه': 'Nadia', 'رقية': 'Roqaya', 'عائشة': 'Aisha', 'عايشة': 'Aisha', 'زينب': 'Zeinab', 'خديجة': 'Khadija', 'خديجه': 'Khadija', 'اسماء': 'Asmaa', 'أسماء': 'Asmaa', 'ايمان': 'Eman', 'إيمان': 'Eman', 'شيماء': 'Shaimaa', 'علياء': 'Alia', 'عاليا': 'Alia', 'ابو': 'Abou', 'أبو': 'Abou', 'ابن': 'Ibn', 'بن': 'Bin', 'الدين': 'El-Din', 'حامد': 'Hamed', 'ناصر': 'Nasser', 'منصور': 'Mansour', 'مختار': 'Mokhtar', 'عثمان': 'Osman', 'بكر': 'Bakr', 'فؤاد': 'Fouad', 'فواد': 'Fouad', 'لطفي': 'Lotfy', 'نصر': 'Nasr', 'عوض': 'Awad', 'غانم': 'Ghanem', 'سلامة': 'Salama', 'سلامه': 'Salama', 'عبد': 'Abd', 'ال': 'El' };
+const AR_LET = { 'ا': 'a', 'أ': 'a', 'إ': 'e', 'آ': 'a', 'ء': 'a', 'ؤ': 'o', 'ئ': 'e', 'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'g', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n', 'ه': 'h', 'ة': 'a', 'و': 'o', 'ي': 'y', 'ى': 'a' };
+function enName(x) {
+  const t = String(x == null ? '' : x).trim();
+  if (!/[؀-ۿ]/.test(t)) return t;
+  return t.split(/\s+/).map(w => {
+    const k = w.replace(/[ً-ْـ]/g, '');
+    if (EN_NAMES[k]) return EN_NAMES[k];
+    if (k.startsWith('ال') && k.length > 3 && EN_NAMES[k.slice(2)]) return 'El-' + EN_NAMES[k.slice(2)];
+    const r = [...k].map(c => AR_LET[c] != null ? AR_LET[c] : c).join('');
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  }).join(' ');
+}
 const en = x => { if (!S.parentMode) return x; let r = String(x == null ? '' : x); EN_WORDS.forEach(([a, b]) => { r = r.split(a).join(b); }); return r; };
 const classesSorted = () => Object.entries(S.classes).map(([id, c]) => ({ id, ...c })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
 const subjectName = id => (S.subjects.find(s => s.id === id) || {}).name || '؟';
@@ -2438,7 +2460,7 @@ function pmSide() {
   PM_PAGES.forEach(([k, label]) => { const b = h('button', { type: 'button', class: S.ppage === k ? 'on' : '', onclick: () => { S.ppage = k; close(); window.scrollTo(0, 0); refresh(); } }); b.innerHTML = pmIco(k, 20) + '<span>' + label + '</span>'; if (S.ppage === k) b.setAttribute('aria-current', 'page'); nav.append(b); });
   const nm = (S.me && S.me.name) || '';
   const brand = h('div', { class: 'pm-brand' }, h('img', { src: $('#crest').src, alt: '', width: 44, height: 44 }), h('div', {}, h('b', { text: 'Wiseness' }), h('span', { text: 'Language School' })));
-  const user = h('div', { class: 'pm-user' }, h('b', { dir: 'auto', text: nm || 'Student' }), h('span', { text: (S.parentDoc && S.parentDoc.type === 's') ? 'Student' : 'Parent' }));
+  const user = h('div', { class: 'pm-user' }, h('b', { dir: 'auto', text: enName(nm) || 'Student' }), h('span', { text: (S.parentDoc && S.parentDoc.type === 's') ? 'Student' : 'Parent' }));
   const homeBtn = h('button', { type: 'button', class: 'pm-homebtn', onclick: () => { close(); openPublicSite(); } }); homeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5h4v5"/></svg><span>Home</span>';
   nav.insertBefore(homeBtn, nav.firstChild);
   const out = h('button', { class: 'pm-out', type: 'button', onclick: fbLogout }); out.innerHTML = 'Log out';
@@ -2456,7 +2478,7 @@ function pmGrades(P, wrap) {
   const Sx = scheme(), fields = schemeFields(Sx), kids = P.kids || [], sn = id => en(subjectName(id));
   const term = en(S.cfg.term || '') + (S.cfg.year ? ' – Academic year ' + S.cfg.year : '');
   const first = (P.info || {})[kids[0]] || {};
-  const who = P.type === 's' ? (first.n || (S.me && S.me.name) || 'Student') : ((S.me && S.me.name) || 'Parent');
+  const who = enName(P.type === 's' ? (first.n || (S.me && S.me.name) || 'Student') : ((S.me && S.me.name) || 'Parent'));
   const ban = h('section', { class: 'pm-banner' }, h('div', {}, h('h1', { dir: 'auto', text: 'Welcome, ' + who }),
     h('p', { text: P.type === 's' ? 'Track your progress and stay on top of your academic journey.' : "Follow your child's progress and stay on top of the weekly plan." })));
   const capEl = h('div', { class: 'cap' }); capEl.innerHTML = pmIco('cap', 84); ban.append(capEl); wrap.append(ban);
@@ -2467,7 +2489,7 @@ function pmGrades(P, wrap) {
     const showAll = !!S.pmAll;
     const head = h('div', { class: 'pm-gh' }, tr,
       h('div', { class: 'pm-gt' }, h('h2', { text: P.type === 's' ? 'My Grades' : (kids.length > 1 ? 'Grades' : "My Child's Grades") }),
-        h('p', { text: term }), (P.type !== 's' || kids.length > 1) && h('p', { class: 'pm-kid', dir: 'auto', text: (info.n || 'Student') + (info.c ? ' – ' + info.c : '') })),
+        h('p', { text: term }), (P.type !== 's' || kids.length > 1) && h('p', { class: 'pm-kid', dir: 'auto', text: enName(info.n || 'Student') + (info.c ? ' – ' + en(info.c) : '') })),
       rows.length ? h('button', { class: 'pm-btn', type: 'button', text: showAll ? 'Hide details' : 'View All Grades →', onclick: () => { S.pmAll = !S.pmAll; refresh(); } }) : null);
     card.append(head);
     if (!rows.length) card.append(h('div', { class: 'empty', text: 'No grades have been published yet. They appear here once the school administration approves the final sheets.' }));
@@ -2505,43 +2527,24 @@ function pmPlan(P, wrap) {
       h('button', { class: 'pm-btn', type: 'button', text: '← Previous', onclick: () => go_(-1) }),
       S.planWk !== weekStart(new Date()) && h('button', { class: 'pm-btn', type: 'button', text: 'This week', onclick: () => go_(0) }),
       h('button', { class: 'pm-btn', type: 'button', text: 'Next →', onclick: () => go_(1) }))));
-  const [y, m, dd] = S.planWk.split('-').map(Number), todayIso = isoDay(new Date());
   cids.forEach(cid => {
     const doc = (S.plans || {})[cid], subs = Object.entries((doc || {}).s || {}).filter(([, p]) => planHasContent(p))
       .sort((a, b) => en(subjectName(a[0])).localeCompare(en(subjectName(b[0])), 'en'));
     if (cids.length > 1) { const inf = (P.info || {})[kids.find(k => k.split('__')[0] === cid)] || {}; card.append(h('h3', { class: 'pm-cls', dir: 'auto', text: inf.c || 'Class' })); }
-    PDAYS.forEach(([k, , e], i) => {
-      const d = new Date(y, m - 1, dd + i), today = isoDay(d) === todayIso;
-      const items = subs.map(([sid, p]) => [sid, ((p.d || {})[k] || '').trim()]).filter(x => x[1]);
-      const chip = h('div', { class: 'pm-chip' + (today ? ' today' : '') }, h('span', { text: e.slice(0, 3) }), h('b', { text: String(d.getDate()).padStart(2, '0') }));
-      const dc = h('div', { class: 'pm-dc' + (items.length ? '' : ' none') });
-      if (items.length) items.forEach(([sid, t]) => dc.append(h('div', { class: 'it' }, h('b', { text: en(subjectName(sid)) }), h('span', { dir: 'auto', text: t }))));
-      else dc.append(h('div', { class: 'it' }, h('span', { text: subs.length ? 'No lessons posted for this day.' : 'No plan has been posted for this week yet.' })));
-      card.append(h('div', { class: 'pm-day' }, chip, dc));
-    });
-    const extra = subs.filter(([, p]) => (p.hw || '').trim() || (p.note || '').trim());
-    if (extra.length) {
-      const box = h('div', { class: 'pm-extra' }, h('h3', { text: 'Homework & notes' }));
-      extra.forEach(([sid, p]) => {
-        const it = h('div', { class: 'pm-x' }, h('b', { text: en(subjectName(sid)) }));
-        if ((p.hw || '').trim()) it.append(h('p', {}, h('em', { text: 'Homework: ' }), h('span', { dir: 'auto', text: p.hw })));
-        if ((p.note || '').trim()) it.append(h('p', {}, h('em', { text: 'Note: ' }), h('span', { dir: 'auto', text: p.note })));
-        box.append(it);
-      });
-      card.append(box);
-    }
+    if (!subs.length) card.append(h('div', { class: 'pm-dc none', style: 'margin-top:12px' }, h('div', { class: 'it' }, h('span', { text: 'No plan has been posted for this week yet.' }))));
+    subs.forEach(([sid, p]) => card.append(planCard(en(subjectName(sid)), p, 'en')));
   });
   wrap.append(card);
 }
 function pmProfile(P, wrap) {
   const kids = P.kids || [], login = String((FB && FB.email) || '').split('@')[0];
-  const first = (P.info || {})[kids[0]] || {}, nm = P.type === 's' ? (first.n || (S.me && S.me.name) || 'Student') : ((S.me && S.me.name) || 'Parent');
+  const first = (P.info || {})[kids[0]] || {}, nm = enName(P.type === 's' ? (first.n || (S.me && S.me.name) || 'Student') : ((S.me && S.me.name) || 'Parent'));
   const card = h('section', { class: 'pm-card' }, h('div', { class: 'pm-prof' }, h('div', { class: 'pm-av', 'aria-hidden': 'true', text: (nm.trim().charAt(0) || '?').toUpperCase() }),
     h('div', {}, h('h2', { dir: 'auto', text: nm }), h('p', { class: 'pm-sub', text: P.type === 's' ? 'Student account' : 'Parent account' }))));
   const dl = h('dl', { class: 'pm-dl' });
   const row = (k, v) => { if (v) dl.append(h('dt', { text: k }), h('dd', { dir: 'auto', text: v })); };
   row('Login code', login);
-  kids.forEach(k => { const i = (P.info || {})[k] || {}; row(P.type === 's' ? 'Class' : (i.n || 'Student'), P.type === 's' ? i.c : i.c); });
+  kids.forEach(k => { const i = (P.info || {})[k] || {}; row(P.type === 's' ? 'Class' : enName(i.n || 'Student'), P.type === 's' ? i.c : i.c); });
   card.append(dl); wrap.append(card);
 }
 function pmSettings(P, wrap) {
@@ -2575,7 +2578,7 @@ function weekLabel(wk, lang) {
   return f(a) + ' – ' + f(b) + ' ' + b.getFullYear();
 }
 const planId = (cid, wk) => cid + '__' + wk;
-const planHasContent = p => p && (PDAYS.some(([k]) => ((p.d || {})[k] || '').trim()) || (p.hw || '').trim() || (p.note || '').trim());
+const planHasContent = p => p && (PDAYS.some(([k]) => ((p.d || {})[k] || '').trim()) || (p.hw || '').trim() || PDAYS.some(([k]) => ((p.hd || {})[k] || '').trim()) || (p.q || '').trim() || (p.note || '').trim());
 
 async function savePlan(id, patch) { const r = db.doc('plans/' + id); try { await r.update(patch); } catch (e) { if (e && e.code === 'invalid_argument') await r.set(patch); else throw e; } }
 function pagePlans() {
@@ -2605,14 +2608,15 @@ function pagePlans() {
 
   const ta = {}, form = h('div', { class: 'card plan-form' });
   PDAYS.forEach(([k, ar]) => { ta[k] = h('textarea', { rows: 3, placeholder: 'دروس ' + ar + '...', disabled: !canEdit }); });
-  const hw = h('textarea', { rows: 3, placeholder: 'الواجبات المطلوبة', disabled: !canEdit });
+  const hwd = {}; PDAYS.forEach(([k, ar]) => { hwd[k] = h('textarea', { rows: 3, placeholder: 'واجب ' + ar + '...', disabled: !canEdit }); });
+  const quiz = h('textarea', { rows: 2, placeholder: 'كويز (اختياري): اكتب اللي عايزه، مثلًا: كويز يوم الثلاثاء على الوحدة 3', disabled: !canEdit });
   const note = h('textarea', { rows: 2, placeholder: 'ملاحظات لأولياء الأمور (اختياري)', disabled: !canEdit });
   const info = h('p', { class: 'note' }), overview = h('div', { class: 'plan-over' });
   let dirty = false, cur = null;
-  [...Object.values(ta), hw, note].forEach(x => x.addEventListener('input', () => { dirty = true; }));
+  [...Object.values(ta), ...Object.values(hwd), quiz, note].forEach(x => x.addEventListener('input', () => { dirty = true; }));
   const fill = () => {
     const p = ((cur || {}).s || {})[sid] || {};
-    PDAYS.forEach(([k]) => { ta[k].value = (p.d || {})[k] || ''; }); hw.value = p.hw || ''; note.value = p.note || '';
+    PDAYS.forEach(([k]) => { ta[k].value = (p.d || {})[k] || ''; hwd[k].value = (p.hd || {})[k] || ''; }); quiz.value = p.q || ''; note.value = p.note || '';
     info.textContent = planHasContent(p) ? ('منشورة للطلاب' + (p.byName ? ' · ' + p.byName : '') + (p.ts ? ' · ' + new Date(p.ts).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '')) : 'لسه ما اتكتبتش خطة للمادة دي في الأسبوع ده.';
     dirty = false;
   };
@@ -2632,28 +2636,28 @@ function pagePlans() {
     }, e => { info.textContent = errText(e); });
   };
   const save = async () => {
-    const d = {}; PDAYS.forEach(([k]) => { d[k] = ta[k].value.trim(); });
-    const p = { d, hw: hw.value.trim(), note: note.value.trim(), by: S.me.id, byName: nameOf(S.me.id) || S.me.name || '', ts: Date.now() };
+    const d = {}, hd = {}; PDAYS.forEach(([k]) => { d[k] = ta[k].value.trim(); hd[k] = hwd[k].value.trim(); });
+    const p = { d, hd, hw: '', q: quiz.value.trim(), note: note.value.trim(), by: S.me.id, byName: nameOf(S.me.id) || S.me.name || '', ts: Date.now() };
     if (!planHasContent(p)) { toast('اكتب حاجة في الخطة الأول.', true); return; }
     try { await savePlan(planId(cid, route.wk), { cid, wk: route.wk, s: { [sid]: p } }); dirty = false; toast('اتحفظت واتنشرت لكل طلاب الفصل.'); }
     catch (e) { toast(errText(e), true); }
   };
   const remove = async () => {
     if (!confirm('تمسح خطة المادة دي من الأسبوع ده؟ الطلاب مش هيشوفوها.')) return;
-    try { const blank = {}; PDAYS.forEach(([k]) => { blank[k] = ''; }); await savePlan(planId(cid, route.wk), { cid, wk: route.wk, s: { [sid]: { d: blank, hw: '', note: '', by: S.me.id, byName: '', ts: Date.now() } } }); toast('اتمسحت.'); }
+    try { const blank = {}; PDAYS.forEach(([k]) => { blank[k] = ''; }); await savePlan(planId(cid, route.wk), { cid, wk: route.wk, s: { [sid]: { d: blank, hd: blank, hw: '', q: '', note: '', by: S.me.id, byName: '', ts: Date.now() } } }); toast('اتمسحت.'); }
     catch (e) { toast(errText(e), true); }
   };
   const copyPrev = async () => {
     try {
       const s = await db.doc('plans/' + planId(cid, shiftWeek(route.wk, -1))).get(), p = s.exists ? (s.data().s || {})[sid] : null;
       if (!planHasContent(p)) { toast('مفيش خطة في الأسبوع السابق للمادة دي.', true); return; }
-      PDAYS.forEach(([k]) => { ta[k].value = (p.d || {})[k] || ''; }); hw.value = p.hw || ''; note.value = p.note || ''; dirty = true;
+      PDAYS.forEach(([k]) => { ta[k].value = (p.d || {})[k] || ''; hwd[k].value = (p.hd || {})[k] || ''; }); quiz.value = ''; note.value = p.note || ''; dirty = true;
       toast('اتنسخت. عدّل واضغط حفظ ونشر.');
     } catch (e) { toast(errText(e), true); }
   };
   form.append(h('h2', { text: className(cid) + ' — ' + subjectName(sid) }),
-    h('div', { class: 'plan-days' }, PDAYS.map(([k, ar]) => h('label', { class: 'f' }, ar, ta[k]))),
-    h('label', { class: 'f' }, 'الواجبات', hw), h('label', { class: 'f' }, 'ملاحظات', note), info,
+    h('div', { class: 'plan-hwd' }, PDAYS.map(([k, ar]) => h('div', { class: 'plan-day2' }, h('label', { class: 'f' }, ar + ' — الدرس', ta[k]), h('label', { class: 'f' }, ar + ' — الواجب (Homework)', hwd[k])))),
+    h('label', { class: 'f' }, 'كويز (Quiz)', quiz), h('label', { class: 'f' }, 'ملاحظات', note), info,
     canEdit && h('div', { class: 'acts' },
       h('button', { class: 'btn primary', type: 'button', text: 'حفظ ونشر للطلاب', onclick: save }),
       h('button', { class: 'btn', type: 'button', text: 'نسخ من الأسبوع السابق', onclick: copyPrev }),
@@ -2662,15 +2666,21 @@ function pagePlans() {
   load();
   return wrap;
 }
-// كارت يعرض خطة مادة واحدة (للمعلم بالعربي وللطالب بالإنجليزي)
-function planCard(title, p, lang) {
-  const en_ = lang === 'en', c = h('div', { class: 'card plan-card' }, h('h3', { dir: 'auto', text: title }));
-  if (p.byName) c.append(h('p', { class: 'note', dir: 'auto', text: (en_ ? 'Teacher: ' : 'المعلم: ') + p.byName }));
-  const g = h('div', { class: 'plan-grid' });
-  PDAYS.forEach(([k, ar, e]) => { const t = ((p.d || {})[k] || '').trim(); if (t) g.append(h('div', { class: 'plan-day' }, h('b', { text: en_ ? e : ar }), h('p', { dir: 'auto', text: t }))); });
-  if (g.children.length) c.append(g);
-  if ((p.hw || '').trim()) c.append(h('div', { class: 'plan-hw' }, h('b', { text: en_ ? 'Homework' : 'الواجبات' }), h('p', { dir: 'auto', text: p.hw })));
-  if ((p.note || '').trim()) c.append(h('div', { class: 'plan-note' }, h('b', { text: en_ ? 'Notes' : 'ملاحظات' }), h('p', { dir: 'auto', text: p.note })));
+// كارت مادة واحدة: الخطة الأسبوعية (أيام) جنب الواجبات، وتحتهم شريط الكويز
+function planCard(title, p, lang, byLine) {
+  const en_ = lang === 'en', todayIso = isoDay(new Date());
+  const [y, m, dd] = (S.planWk && lang === 'en' ? S.planWk : (typeof route !== 'undefined' && route.wk) || weekStart(new Date())).split('-').map(Number);
+  const tbl = h('div', { class: 'sp-tbl' }, h('div', { class: 'th', text: en_ ? 'Day' : 'اليوم' }), h('div', { class: 'th', text: en_ ? 'Weekly Plan' : 'الخطة الأسبوعية' }), h('div', { class: 'th', text: en_ ? 'Homework' : 'الواجب' }));
+  PDAYS.forEach(([k, ar, e], i) => {
+    const t = ((p.d || {})[k] || '').trim(), hwd = ((p.hd || {})[k] || '').trim(), today = isoDay(new Date(y, m - 1, dd + i)) === todayIso;
+    tbl.append(h('div', { class: 'dl' + (today ? ' today' : ''), text: en_ ? e : ar }), h('div', { class: t ? '' : 'none', dir: 'auto', text: t || '—' }), h('div', { class: hwd ? '' : 'none', dir: 'auto', text: hwd || '—' }));
+  });
+  const hwT = (p.hw || '').trim();
+  const c = h('section', { class: 'sp-subj' },
+    h('header', {}, h('h3', { dir: 'auto', text: title }), p.byName ? h('small', { dir: 'auto', text: (en_ ? 'Teacher: ' : 'المعلم: ') + p.byName }) : null), tbl);
+  if (hwT) c.append(h('div', { class: 'sp-hw0', dir: 'auto' }, h('b', { text: en_ ? 'Homework' : 'الواجبات' }), hwT));
+  if ((p.q || '').trim()) c.append(h('div', { class: 'sp-quiz' }, h('b', { text: en_ ? 'Quiz' : 'كويز' }), h('span', { dir: 'auto', text: p.q.trim() })));
+  if ((p.note || '').trim()) c.append(h('div', { class: 'sp-note', dir: 'auto', text: (en_ ? 'Note: ' : 'ملاحظة: ') + p.note.trim() }));
   return c;
 }
 // للطالب وولي الأمر
@@ -3153,6 +3163,9 @@ function blobDownloader() {
 }
 // صفحة الاستقبال: سلايد شو خفيف + تسجيل الدخول (إنجليزي)
 // روابط الصور: بدّل أي رابط هنا برابط Cloudinary بتاعك (مكان واحد بس)
+// تحسين صور وفيديوهات Cloudinary تلقائيًا: صيغة أخف (WebP/AVIF) وجودة تلقائية وعرض مناسب — بتخفّض حجم الصفحة جدًا
+const cld = (u, w) => (typeof u === 'string' && u.includes('res.cloudinary.com') && u.includes('/upload/') && !/\/upload\/[a-z]{1,2}_/.test(u)) ? u.replace('/upload/', '/upload/f_auto,q_auto,w_' + w + ',c_limit/') : u;
+const cldv = (u, w) => (typeof u === 'string' && u.includes('res.cloudinary.com') && u.includes('/video/upload/') && !/\/upload\/[a-z]{1,2}_/.test(u)) ? u.replace('/upload/', '/upload/f_auto,q_auto,w_' + w + '/') : u;
 const IMG = {
   s1: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328706/IMG_1157_lvlzq6.webp',   // اللوجو + المبنى (قسم Our school)
   s2: 'https://res.cloudinary.com/df5qqg0v0/image/upload/v1793328741/IMG_1154_ug9syt.png',   // الساحة والباصات (سلايد 1)
@@ -3287,12 +3300,12 @@ function fbLogin(opts) {
     };
     // السلايد شو: أول صورة بس بتتحمّل فورًا، والباقي بعد ما الصفحة تفتح
     const imgs = SLIDES.map((sl, i) => h('img', { alt: sl.alt, decoding: 'async', style: 'object-position:' + sl.pos, class: i === 0 ? 'on' : '' }));
-    imgs[0].src = SLIDES[0].src; imgs[0].setAttribute('fetchpriority', 'high');
+    imgs[0].src = cld(SLIDES[0].src, 1600); imgs[0].setAttribute('fetchpriority', 'high');
     const dots = SLIDES.map((sl, i) => h('button', { type: 'button', 'aria-label': 'Show photo ' + (i + 1), class: i === 0 ? 'on' : '', onclick: () => { show(i); restart(); } }));
     let cur = 0;
-    const loadRest = () => imgs.forEach((im, i) => { if (i && !im.src) im.src = SLIDES[i].src; });
+    const loadRest = () => imgs.forEach((im, i) => { if (i && !im.src) im.src = cld(SLIDES[i].src, 1600); });
     const show = i => {
-      const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = SLIDES[n].src;
+      const n = (i + imgs.length) % imgs.length; if (!imgs[n].src) imgs[n].src = cld(SLIDES[n].src, 1600);
       imgs[cur].classList.remove('on'); dots[cur].classList.remove('on'); cur = n; imgs[cur].classList.add('on'); dots[cur].classList.add('on');
     };
     const restart = () => { if (timer) clearInterval(timer); timer = setInterval(() => { if (!document.hidden) show(cur + 1); }, 2000); };
@@ -3313,13 +3326,13 @@ function fbLogin(opts) {
     home.append(h('section', { class: 'lp-hero' }, h('div', { class: 'lp-bg' }, imgs), h('div', { class: 'lp-shade' }), h('div', { class: 'lp-inner one' }, heroCopy), h('div', { class: 'lp-dots' }, dots)));
     home.append(mk('div', 'lp-facts', '<div class="lp-facts-in">' + SITE.stats.map(x => '<div><b>' + x.n + '</b><span>' + x.l + '</span></div>').join('') + '</div>'));
     const about = mk('section', 'lp-sec', '<h2>About the school</h2><p class="sub">Since ' + A + ', Wiseness Language School has prepared its students to step into the world with solid knowledge, modern skills and strong values, while staying close to their culture and roots. We nurture a love of learning, encourage curiosity, and give every child a firm foundation to build on.</p>' +
-      '<div class="lp-about"><figure><img src="' + IMG.s1 + '" loading="lazy" decoding="async" alt="Wiseness Language School main building"></figure><div class="lp-blocks">' +
+      '<div class="lp-about"><figure><img src="' + cld(IMG.s1, 1000) + '" loading="lazy" decoding="async" alt="Wiseness Language School main building"></figure><div class="lp-blocks">' +
       '<div class="lp-block"><h3>Our story</h3><p>Founded in ' + A + ', the school began with a simple promise: to give students a solid foundation and the confidence to build on it. Today that promise guides every classroom, every teacher and every school day.</p></div>' +
       '<div class="lp-block"><h3>Our vision</h3><p>To shape capable, confident and responsible people who pursue their goals. We do this in a warm, safe and supportive place where every student is treated equally and every achievement is celebrated. A happy child is a successful one, and we want every learner to enjoy learning for life.</p></div>' +
       '<div class="lp-block"><h3>Our goal</h3><p>To equip students with the skills and mindset to thrive, and to meet the challenges of the world with courage.</p></div>' +
       '<div class="lp-block"><h3>Our strategy</h3><p>We build a lively, creative community of learners who grow intellectually, emotionally and physically. We help each student reach high academic standards, widen their abilities and become a productive, ethical and caring member of society.</p></div></div></div>');
     about.id = 'lp-about'; home.append(about);
-    const sec = mk('section', 'lp-sec', '<h2>Life on campus</h2><p class="sub">A look at our school and the students who make it special.</p><div class="lp-gal"><figure><img src="' + IMG.s2 + '" loading="lazy" decoding="async" width="400" height="300" alt="School campus and buses"></figure><figure><img src="' + IMG.s5 + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students"></figure><figure><img src="' + IMG.s3 + '" loading="lazy" decoding="async" width="400" height="300" alt="The school building"></figure></div>');
+    const sec = mk('section', 'lp-sec', '<h2>Life on campus</h2><p class="sub">A look at our school and the students who make it special.</p><div class="lp-gal"><figure><img src="' + cld(IMG.s2, 900) + '" loading="lazy" decoding="async" width="400" height="300" alt="School campus and buses"></figure><figure><img src="' + cld(IMG.s5, 900) + '" loading="lazy" decoding="async" width="400" height="380" alt="Graduating students"></figure><figure><img src="' + cld(IMG.s3, 900) + '" loading="lazy" decoding="async" width="400" height="300" alt="The school building"></figure></div>');
     home.append(sec);
     const signin = mk('section', 'lp-signin'); signin.id = 'lp-login';
     const sl = mk('div', null, '<h2>Student, parent &amp; staff portal</h2><p class="l">Sign in with your email or the school code you received to follow grades and the weekly plan, or to manage your classes.</p>');
@@ -3338,24 +3351,24 @@ function fbLogin(opts) {
     // ---------- Teachers ----------
     const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const teachers = mk('div', 'pg');
-    teachers.append(mk('section', 'ph-hero', '<img src="' + esc(SITE.teachersHero) + '" alt="Our teachers" decoding="async"><div class="in"><h1>Our Teachers</h1><p>The people who inspire our students every day, with experience, patience and a real passion for teaching.</p></div>'));
+    teachers.append(mk('section', 'ph-hero', '<img src="' + esc(cld(SITE.teachersHero, 1600)) + '" alt="Our teachers" decoding="async"><div class="in"><h1>Our Teachers</h1><p>The people who inspire our students every day, with experience, patience and a real passion for teaching.</p></div>'));
     const tg = mk('div', 'tg');
-    SITE.teachers.forEach(t => tg.append(mk('article', 'tc', '<div class="ph">' + (t.img ? '<img src="' + esc(t.img) + '" loading="lazy" decoding="async" alt="' + esc(t.name) + '">' : esc((t.name || '?').trim().charAt(0).toUpperCase())) + '</div><div class="tx"><h3>' + esc(t.name) + '</h3><div class="rl">' + esc(t.role) + '</div><p>' + esc(t.desc) + '</p></div>')));
+    SITE.teachers.forEach(t => tg.append(mk('article', 'tc', '<div class="ph">' + (t.img ? '<img src="' + esc(cld(t.img, 640)) + '" loading="lazy" decoding="async" alt="' + esc(t.name) + '">' : esc((t.name || '?').trim().charAt(0).toUpperCase())) + '</div><div class="tx"><h3>' + esc(t.name) + '</h3><div class="rl">' + esc(t.role) + '</div><p>' + esc(t.desc) + '</p></div>')));
     const ts = mk('section', 'lp-sec'); ts.append(tg); teachers.append(ts, foot());
     // ---------- Seniors ----------
     const seniors = mk('div', 'pg');
-    seniors.append(mk('section', 'ph-hero', '<img src="' + esc(SITE.seniorsHero) + '" alt="Our graduates" decoding="async"><div class="in"><h1>Seniors</h1><p>Our graduating classes: the memories, the celebrations and the next chapter.</p></div>'));
+    seniors.append(mk('section', 'ph-hero', '<img src="' + esc(cld(SITE.seniorsHero, 1600)) + '" alt="Our graduates" decoding="async"><div class="in"><h1>Seniors</h1><p>Our graduating classes: the memories, the celebrations and the next chapter.</p></div>'));
     const ss = mk('section', 'lp-sec'); const vids = [];
     const sList = mk('div', 'sl', '<h2 style="margin-bottom:26px">Graduation archive</h2>');
     const cl = mk('ul', 'cl');
-    SITE.seniors.forEach(b => cl.append(mk('li', null, '<a data-cls="' + esc(b.year) + '" href="#/seniors/' + esc(b.year) + '"><div class="cv"><img src="' + esc(b.cover || (b.photos || [])[0] || '') + '" loading="lazy" decoding="async" alt="Class of ' + esc(b.year) + '"></div><div class="ct"><div class="yr">' + esc(b.year) + '</div><div class="cc">CLASS OF ' + esc(b.year) + '</div><span class="vm">View memories <i>&rarr;</i></span></div></a>')));
+    SITE.seniors.forEach(b => cl.append(mk('li', null, '<a data-cls="' + esc(b.year) + '" href="#/seniors/' + esc(b.year) + '"><div class="cv"><img src="' + esc(cld(b.cover || (b.photos || [])[0] || '', 640)) + '" loading="lazy" decoding="async" alt="Class of ' + esc(b.year) + '"></div><div class="ct"><div class="yr">' + esc(b.year) + '</div><div class="cc">CLASS OF ' + esc(b.year) + '</div><span class="vm">View memories <i>&rarr;</i></span></div></a>')));
     sList.append(cl);
     const sDet = mk('div', 'sd'); sDet.hidden = true;
     ss.append(sList, sDet);
     SITE.seniors.forEach(b => {
       const box = mk('div', 'sb', '<a class="sback" href="#/seniors">&larr; All classes</a><h3><em>Class of ' + esc(b.year) + '</em></h3>'); box.hidden = true; box.dataset.cls = b.year; const g = mk('div', 'sm');
-      (b.videos || []).forEach(u => { const f = mk('figure', 'vid'); const vd = h('video', { muted: true, loop: true, playsinline: true, preload: 'none', 'aria-label': 'Class of ' + b.year + ' video' }); vd.muted = true; vd.setAttribute('playsinline', ''); vd.dataset.src = u; f.append(vd); g.append(f); vids.push(vd); });
-      (b.photos || []).forEach(u => g.append(mk('figure', null, '<img src="' + esc(u) + '" loading="lazy" decoding="async" alt="Class of ' + esc(b.year) + '">')));
+      (b.videos || []).forEach(u => { const f = mk('figure', 'vid'); const vd = h('video', { muted: true, loop: true, playsinline: true, preload: 'none', 'aria-label': 'Class of ' + b.year + ' video' }); vd.muted = true; vd.setAttribute('playsinline', ''); vd.dataset.src = cldv(u, 720); f.append(vd); g.append(f); vids.push(vd); });
+      (b.photos || []).forEach(u => g.append(mk('figure', null, '<img src="' + esc(cld(u, 900)) + '" loading="lazy" decoding="async" alt="Class of ' + esc(b.year) + '">')));
       box.append(g); sDet.append(box);
     });
     seniors.append(ss, foot());
@@ -3372,7 +3385,7 @@ function fbLogin(opts) {
     // ---------- nav + routing ----------
     const pages = { home, teachers, seniors };
     const nav = mk('nav', 'lp-nav'); nav.setAttribute('aria-label', 'Main');
-    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span>' + (pv ? '<a class="cta me" data-go="back" title="' + (S.parentMode ? 'Back to my account' : 'العودة لحسابي') + '">' + (SITE.userIcon ? '<img src="https://res.cloudinary.com/df5qqg0v0/image/upload/v1794276140/IMG_1275_ccdddg.png"' + esc(SITE.userIcon) + '" alt="" width="22" height="22">' : '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.500-6 8-6s6.500 2 8 6"/></svg>') + '<span class="hi" dir="auto">' + esc(opts.name || (S.parentMode ? 'Student' : 'حسابي')) + '</span></a>' : '<a class="cta" data-go="login">Sign in</a>') + '</div>';
+    nav.innerHTML = '<div class="lp-nav-in"><a class="nl" data-r="home">Home</a><a class="nl" data-r="teachers">Teachers</a><a class="nl" data-r="seniors">Seniors</a><span class="sp"></span>' + (pv ? '<a class="cta me" data-go="back" title="' + (S.parentMode ? 'Back to my account' : 'العودة لحسابي') + '">' + (SITE.userIcon ? '<img src="' + esc(SITE.userIcon) + '" alt="" width="22" height="22">' : '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.500-6 8-6s6.500 2 8 6"/></svg>') + '<span class="hi" dir="auto">' + esc(opts.name || (S.parentMode ? 'Student' : 'حسابي')) + '</span></a>' : '<a class="cta" data-go="login">Sign in</a>') + '</div>';
     const route = () => {
       const parts = (location.hash || '').replace(/^#\/?/, '').split('/'); const r = parts[0]; const k = pages[r] ? r : 'home'; if (k === 'seniors') showClass(parts[1] || null);
       Object.keys(pages).forEach(n => { pages[n].hidden = n !== k; });
@@ -3397,6 +3410,8 @@ async function setupFirebase() {
   const [appM, authM, fsM] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
   const app = appM.initializeApp(FIREBASE_CONFIG);
   const auth = authM.getAuth(app), fs = fsM.getFirestore(app);
+  // وضع الإنترفيو: افتح الرابط بـ ?multi في أي تاب عشان كل تاب يبقى له تسجيل دخول مستقل (بيتمسح لما التاب يتقفل)
+  if (/[?&]multi\b/.test(location.search)) { try { await authM.setPersistence(auth, authM.browserSessionPersistence); } catch (e) { /* تجاهل */ } }
   FB = { appM, authM, fsM, app, auth, fs };
   let u = await new Promise(res => { const un = authM.onAuthStateChanged(auth, x => { un(); res(x); }); });
   if (!u) { await fbLogin(); u = auth.currentUser; }
@@ -3546,7 +3561,7 @@ function staffImportCard() {
 }
   
 let pubOpen = false;
-async function openPublicSite() { if (pubOpen) return; pubOpen = true; try { await fbLogin({ preview: true, name: (S.me && S.me.name) || '' }); } finally { pubOpen = false; } }
+async function openPublicSite() { if (pubOpen) return; pubOpen = true; try { await fbLogin({ preview: true, name: S.parentMode ? enName((S.me && S.me.name) || '') : ((S.me && S.me.name) || '') }); } finally { pubOpen = false; } }
 async function fbLogout() { try { await FB.authM.signOut(FB.auth); } catch (e) { /* تجاهل */ } location.reload(); }
 function fbAddUserCard() {
   const name = h('input', { type: 'text', id: 'fbName' });
